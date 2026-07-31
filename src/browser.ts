@@ -1,10 +1,12 @@
 import { chromium, BrowserContext, Page } from 'playwright';
 
+import * as path from 'path';
+
 let context: BrowserContext | null = null;
 let page: Page | null = null;
 
-// 使用環境變數，或 fallback 到預設 Chrome 路徑
-const USER_DATA_DIR = process.env.CHROME_USER_DATA_DIR || 'C:\\Users\\wang6\\AppData\\Local\\Google\\Chrome\\User Data';
+// 使用專案本地的暫存 Profile，避免直接掛載使用者預設 Profile 觸發 Chrome 的安全阻擋
+const USER_DATA_DIR = process.env.CHROME_USER_DATA_DIR || path.join(__dirname, '..', '.chrome-profile');
 
 export async function getBrowserPage(): Promise<Page> {
     if (page && context) {
