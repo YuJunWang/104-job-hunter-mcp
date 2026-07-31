@@ -10,7 +10,7 @@ export const SearchArgsSchema = z.object({
 export type SearchArgs = z.infer<typeof SearchArgsSchema>;
 
 export async function searchJobs(args: SearchArgs) {
-    const page = await getBrowserPage();
+    const browserPage = await getBrowserPage();
     const { keyword, page: pageNum } = args;
     
     // 建立 104 搜尋網址
@@ -18,59 +18,59 @@ export async function searchJobs(args: SearchArgs) {
     url.searchParams.set('ro', '0');
     url.searchParams.set('keyword', keyword);
     url.searchParams.set('expansionType', 'area,spec,com,job,wf,wktm');
-    url.searchParams.set('order', '1');
+    url.searchParams.set('order', '15');
     url.searchParams.set('asc', '0');
     url.searchParams.set('page', pageNum.toString());
     url.searchParams.set('mode', 's');
     url.searchParams.set('jobsource', '2018indexpoc');
 
     console.error(`[Search] Navigating to ${url.toString()}`);
-    await page.goto(url.toString(), { waitUntil: 'domcontentloaded' });
     
-    // 等待列表出現
-    try {
-        await page.waitForSelector('#js-job-content', { timeout: 10000 });
-    } catch (e) {
-        return { error: "無法載入職缺列表，可能沒有搜尋結果，或是遇到防爬蟲機制阻擋。" };
-    }
-
-    // 擷取職缺資訊
-    const jobs = await page.evaluate(() => {
-        const items = document.querySelectorAll('article.job-list-item');
-        const results: any[] = [];
+    // 用 Promise 監聽 104 的後端 JSON API，繞過所有 DOM 防爬蟲機制
+    const apiDataPromise = new Promise<any>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('API 回應逾時（20秒）')), 20000);
         
-        items.forEach(item => {
-            const titleElem = item.querySelector('.b-tit a');
-            const companyElem = item.querySelector('.b-list-inline.b-clearfix li a');
-            const salaryElem = item.querySelector('.b-tag--default');
-            const descElem = item.querySelector('.job-list-item__info');
-            
-            if (titleElem) {
-                const title = titleElem.textContent?.trim() || '';
-                let link = titleElem.getAttribute('href') || '';
-                if (link.startsWith('//')) {
-                    link = 'https:' + link;
+        browserPage.on('response', async (response) => {
+            if (response.url().includes('/jobs/search/api/jobs')) {
+                clearTimeout(timeout);
+                try {
+                    const json = await response.json();
+                    resolve(json);
+                } catch (e) {
+                    reject(e);
                 }
-                const company = companyElem ? companyElem.textContent?.trim() : '';
-                const salary = salaryElem ? salaryElem.textContent?.trim() : '';
-                const description = descElem ? descElem.textContent?.trim() : '';
-
-                results.push({
-                    title,
-                    company,
-                    salary,
-                    description,
-                    link
-                });
             }
         });
-        
-        return results;
     });
+
+    await browserPage.goto(url.toString(), { waitUntil: 'domcontentloaded' });
+    
+    let apiData: any;
+    try {
+        apiData = await apiDataPromise;
+    } catch (e) {
+        return { error: `無法取得職缺資料：${(e as Error).message}` };
+    }
+
+    // 將 API 回傳的 JSON 轉換成我們的格式
+    const jobs = (apiData.data || []).map((job: any) => ({
+        title: job.jobName || '',
+        company: job.custName || '',
+        salary: (job.salaryLow && job.salaryLow > 0)
+            ? (job.salaryHigh >= 9999999
+                ? `月薪 ${Math.round(job.salaryLow / 10000)} 萬以上`
+                : `月薪 ${Math.round(job.salaryLow / 10000)}～${Math.round(job.salaryHigh / 10000)} 萬`)
+            : '薪資面議',
+        location: job.jobAddrNoDesc || '',
+        description: job.description || '',
+        link: job.link?.job || '',
+        skills: (job.pcSkills || []).map((s: any) => s.description),
+    }));
 
     return {
         keyword,
         page: pageNum,
+        total: apiData.metadata?.total || jobs.length,
         results: jobs
     };
 }
