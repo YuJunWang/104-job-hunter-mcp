@@ -203,6 +203,18 @@ npx tsx src/login.ts
 
 ---
 
+## 🤖 給 AI 代理的行為規範 (AGENT.md)
+
+為了確保 AI 助理在幫你找工作時，能表現得像一個「懂得察言觀色、不亂投履歷」的專業獵頭，我們在專案中提供了 [`AGENT.md`](./AGENT.md)。
+
+這份文件定義了 **5-Step Smart Hunter Workflow**，教導 AI 如何先要你的履歷、進行精準媒合，並在最後一步將控制權交還給你。
+
+**如何「安裝」這份規範讓你的 AI 讀取？**
+- **Antigravity 使用者**：可以將 `AGENT.md` 的內容存成全域 Skill（例如放在 `~/.gemini/config/skills/104-hunter-workflow/SKILL.md`），或是直接丟進當前工作區的 `.agents/rules/` 資料夾中。
+- **Cursor / Claude Desktop 使用者**：可以將 `AGENT.md` 的內容直接貼進你的 `.cursorrules`，或是加進專案專屬的 System Prompt 中。
+
+---
+
 ## 📁 專案結構
 
 ```
