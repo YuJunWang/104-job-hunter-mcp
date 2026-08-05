@@ -16,6 +16,8 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
     "playwright": "^1.62.1",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
     "zod": "^4.4.3"
   },
   "devDependencies": {

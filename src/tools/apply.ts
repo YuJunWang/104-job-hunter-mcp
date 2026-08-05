@@ -18,8 +18,8 @@ export async function prepareApplication(args: ApplyArgs) {
     await page.goto(job_url, { waitUntil: 'domcontentloaded' });
     
     try {
-        // 等待「我要應徵」按鈕出現
-        const applyBtnLocator = page.locator('button', { hasText: '我要應徵' }).first();
+        // 等待「應徵」按鈕出現 (104 新版 UI 使用 div 而非 button)
+        const applyBtnLocator = page.locator('.apply-button__button, button:has-text("我要應徵"), button:has-text("應徵")').first();
         await applyBtnLocator.waitFor({ state: 'visible', timeout: 8000 });
         await applyBtnLocator.click();
 
@@ -32,15 +32,14 @@ export async function prepareApplication(args: ApplyArgs) {
         let coverLetterFilled = false;
         if (cover_letter_text) {
             try {
-                const textareaLocator = page.locator(
-                    'textarea[name="message"], textarea[placeholder*="推薦"], textarea[placeholder*="自薦"], textarea'
-                ).last();
-                await textareaLocator.waitFor({ state: 'visible', timeout: 5000 });
+                // 104 應徵視窗內通常只有一個主要的 textarea 作為自我推薦信
+                const textareaLocator = page.locator('textarea.form-control, textarea').first();
+                await textareaLocator.waitFor({ state: 'visible', timeout: 8000 });
                 await textareaLocator.fill(cover_letter_text);
                 coverLetterFilled = true;
                 console.error(`[Apply] Filled cover letter text.`);
             } catch (e) {
-                console.error(`[Apply] Could not find cover letter textarea. May need manual paste.`);
+                console.error(`[Apply] Could not fill cover letter textarea. May need manual paste. Error: ${(e as Error).message}`);
             }
         }
 
