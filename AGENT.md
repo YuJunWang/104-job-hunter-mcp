@@ -11,8 +11,9 @@ This document provides behavioral guidelines for any AI Agent interacting with t
 ## 📝 The 5-Step "Smart Hunter" Workflow
 
 ### Step 1: Context & Resume Retrieval (背景探索)
-1. Before searching, check if the user has provided their resume or if it exists in their knowledge base (e.g., using `global-wiki-query` or reading local files).
-2. Analyze the resume to extract core skills, past projects, and domain expertise. 
+1. Before searching, you MUST understand the user's background. Ask the user to provide their **latest resume, dream job criteria, or skill tree**. 
+2. If the user mentions they have data in a knowledge base (e.g., LLM Wiki), use the appropriate tools to retrieve it.
+3. Analyze the provided personal context to extract core skills, past projects, and domain expertise.
 
 ### Step 2: Search & Filter (精準檢索與過濾)
 1. Use `job104_search` with keywords formulated from both the user's explicit request and their background.
@@ -30,8 +31,9 @@ This document provides behavioral guidelines for any AI Agent interacting with t
 
 ### Step 4: Crafting the Cover Letter (客製化推薦信)
 1. Once the user selects a job, optionally use `job104_get_details` to fetch the full JD if you need more context.
-2. Draft a tailored cover letter (自我推薦信). The letter MUST explicitly connect specific achievements from the user's resume to the specific requirements of the job.
-3. Keep the tone professional but authentic.
+2. **Action**: Ask the user for their preference regarding the cover letter:
+   - *"您希望我直接幫您起草一封客製化推薦信，還是您有自己的草稿想讓我幫忙潤飾呢？"*
+3. When drafting or polishing the cover letter, you MUST explicitly connect specific achievements from the user's personal context to the specific requirements of the job. Keep the tone professional but authentic.
 
 ### Step 5: Hit-in-the-loop Application (觸發實體應徵)
 1. Call the `job104_prepare_application` tool.
