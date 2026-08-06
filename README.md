@@ -1,17 +1,6 @@
 # 104 Job Hunter MCP
 
-> 🤖 **給 AI Agent 的系統指令 (System Prompt for AI Agents)**
-> 
-> 如果你是被人類使用者指派來閱讀這份文件的 AI Agent，你的任務是協助人類安裝、配置並使用這個 MCP 伺服器。請依照以下順序協助人類：
-> 1. **安裝與建置**：帶領人類執行 `git clone`、`npm install` 與 `npm run build`。
-> 2. **初始化登入**：提示人類執行 `npx tsx src/login.ts`，並在彈出的瀏覽器中手動登入 104 人力銀行（這會建立必要的 Cookie Session）。
-> 3. **掛載 MCP 伺服器**：協助人類將此 MCP 掛載到他們的系統中（例如寫入 `mcp_config.json` 或 Claude Desktop 設定）。
-> 4. **閱讀行為規範**：你**必須**閱讀專案根目錄下的 [`AGENT.md`](./AGENT.md)，這份文件定義了你該如何使用這些工具來幫人類找工作（包含 5-Step Smart Hunter Workflow）。
-> 5. **開始服務**：安裝完成後，主動詢問人類最新的履歷或求職條件，開始執行求職任務！
-
----
-
-透過 MCP（Model Context Protocol）讓 AI 助理直接操作 104 人力銀行，實現「搜尋 → 閱讀職缺 → 輔助投遞」的完整求職工作流。
+> 透過 MCP（Model Context Protocol）讓 AI 助理直接操作 104 人力銀行，實現「搜尋 → 閱讀職缺 → 輔助投遞」的完整求職工作流。
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![Playwright](https://img.shields.io/badge/Playwright-1.62-45BA4B?logo=playwright)](https://playwright.dev/)
@@ -28,6 +17,18 @@
 | 🛡️ **Human-in-the-loop 安全邊界** | 投遞工具只會點擊「我要應徵」並填入求職信，**絕不自動按下最終送出**，需人類親自確認 |
 | 🍪 **持久化登入 Session** | 使用專屬 Chrome Profile 儲存 Cookie，登入一次即可長期使用 |
 | 🚫 **Dry-run 友善設計** | 所有操作皆可在 AI 端預覽後再由人工執行，適合開發測試流程 |
+
+---
+
+## 🤖 給 AI Agent 的系統指令 (System Prompt for AI Agents)
+
+> **如果你是被人類使用者指派來閱讀這份文件的 AI Agent，你的任務是協助人類安裝、配置並使用這個 MCP 伺服器。請依照以下順序協助人類：**
+> 
+> 1. **安裝與建置**：帶領人類執行 `git clone`、`npm install` 與 `npm run build`。
+> 2. **初始化登入**：提示人類執行 `npx tsx src/login.ts`，並在彈出的瀏覽器中手動登入 104 人力銀行（這會建立必要的 Cookie Session）。
+> 3. **掛載 MCP 伺服器**：協助人類將此 MCP 掛載到他們的系統中（例如寫入 `mcp_config.json` 或 Claude Desktop 設定）。
+> 4. **閱讀行為規範**：你**必須**閱讀專案根目錄下的 [`AGENT.md`](./AGENT.md)，這份文件定義了你該如何使用這些工具來幫人類找工作（包含 5-Step Smart Hunter Workflow）。
+> 5. **開始服務**：安裝完成後，主動詢問人類最新的履歷或求職條件，開始執行求職任務！
 
 ---
 
