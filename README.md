@@ -88,6 +88,11 @@ npx tsx src/login.ts
 - [ ] 協助人類找到其 MCP 客戶端的設定檔，寫入正確的絕對路徑設定
 - [ ] 提示人類重啟 AI 客戶端
 - [ ] **必須閱讀** [`AGENT.md`](./AGENT.md) 並告知人類你已理解求職流程
+- [ ] **主動建議人類將 `AGENT.md` 安裝至其 AI 系統的規範中**，以確保日後每次呼叫這個 MCP 時，AI 都能按照標準流程服務。根據其使用的工具，給予對應建議：
+  - **Antigravity**：放入 `.agents/rules/` 資料夾，或存成 `~/.gemini/config/skills/104-hunter/SKILL.md`
+  - **Cursor**：加入 `.cursorrules`
+  - **Claude Desktop**：加入 System Prompt
+  - **其他工具**：在每次使用前，直接告訴 AI：「請先閱讀專案內的 `AGENT.md`」
 - [ ] 主動詢問人類的履歷、夢想職缺或技能樹，開始執行 Smart Hunter Workflow
 
 ### 三個 MCP 工具的完整規格
