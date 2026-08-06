@@ -1,5 +1,6 @@
 import { getBrowserPage } from '../browser';
 import { z } from 'zod';
+import { extractJobId } from '../utils/url';
 
 export const DetailsArgsSchema = z.object({
     job_url: z.string().url().describe("104 職缺頁面網址，格式如 https://www.104.com.tw/job/xxxxx")
@@ -11,12 +12,11 @@ export async function getJobDetails(args: DetailsArgs) {
     const browserPage = await getBrowserPage();
     const { job_url } = args;
 
-    // 從 URL 中提取 job ID，例如 /job/946e6 -> 946e6
-    const jobIdMatch = job_url.match(/\/job\/([a-z0-9]+)/i);
-    if (!jobIdMatch) {
+    const jobId = extractJobId(job_url);
+    if (!jobId) {
         return { error: '無效的 104 職缺 URL 格式，應為 https://www.104.com.tw/job/xxxxx' };
     }
-    const jobId = jobIdMatch[1];
+
 
     console.error(`[Details] Navigating to ${job_url} (jobId: ${jobId})`);
 
