@@ -17,22 +17,26 @@ This document provides behavioral guidelines for any AI Agent interacting with t
 
 ### Step 2: Search & Filter (精準檢索與過濾)
 1. Use `job104_search` with keywords formulated from both the user's explicit request and their background.
+   - The `keyword` field supports **multi-word combinations separated by spaces** (e.g., `AI 工程師 Python LangChain`). Use 2–4 core terms for best results.
+   - Use the `location` field for city-level filtering (e.g., `台北市`). Leave blank to search nationwide.
 2. **Do not dump the raw JSON**. Use your LLM brain to secretly cross-reference the search results with the user's resume.
 3. Filter out irrelevant jobs (e.g., wrong seniority, missing mandatory skills) and select the top 3 to 5 best matches.
+   - **Salary Handling**: If the user specified a minimum salary and a job shows `薪資面議`, treat it as **conditionally eligible** — include it but note the ambiguity to the user.
 
 ### Step 3: Curated Presentation (精緻呈現)
 1. Present the filtered jobs to the user in a highly readable format, preferably a **Markdown Table**.
-2. The table should include: 
+2. The table MUST include the following columns:
    - **推薦度 (Match Rating)**: e.g., ⭐⭐⭐⭐⭐
-   - **職缺名稱 (Job Title) & 公司 (Company)**
+   - **職缺名稱 (Job Title) & 公司 (Company)**: Make the job title a **clickable hyperlink** to the `job_url` (e.g., `[職缺名稱](https://www.104.com.tw/job/xxxxx)`). This ensures the URL is preserved for Step 5.
    - **薪資 (Salary)**
-   - **核心匹配點 (Match Reason)**: A concise, 1-2 sentence explanation of *why* this job fits their specific resume (e.g., "Your LangGraph experience perfectly matches their demand for AI workflows.").
+   - **核心匹配點 (Match Reason)**: A concise, 1-2 sentence explanation of *why* this job fits their specific resume.
 3. **Action**: Pause and ask the user: *"這幾家看起來都非常有發展潛力！您對哪一家最感興趣？"*
 
 ### Step 4: Crafting the Cover Letter (客製化推薦信)
-1. Once the user selects a job, optionally use `job104_get_details` to fetch the full JD if you need more context.
-2. **Action**: Ask the user for their preference regarding the cover letter:
-   - *"您希望我直接幫您起草一封客製化推薦信，還是您有自己的草稿想讓我幫忙潤飾呢？"*
+1. Once the user selects a job, call `job104_get_details` to retrieve the full JD **if the job description from the search result is fewer than 200 characters**. If it's already detailed enough, skip this call to save time.
+2. **Action**: Ask the user for their cover letter preference — **but only if they haven't already stated one**:
+   - If the user has already said something like「幫我寫」or「直接投」, skip the question and proceed to draft immediately.
+   - Otherwise, ask: *"您希望我直接幫您起草一封客製化推薦信，還是您有自己的草稿想讓我幫忙潤飾呢？"*
 3. When drafting or polishing the cover letter, you MUST explicitly connect specific achievements from the user's personal context to the specific requirements of the job. Keep the tone professional but authentic.
 
 ### Step 5: Hit-in-the-loop Application (觸發實體應徵)
