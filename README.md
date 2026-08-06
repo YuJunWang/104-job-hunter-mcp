@@ -87,7 +87,17 @@ npx tsx src/login.ts
 > 4. **讀取行為規範 (重要！)**：你**必須**去讀專案根目錄下的 [`AGENT.md`](./AGENT.md)。裡面寫了你該怎麼用這些工具來幫人類找工作（包含 5-Step Smart Hunter Workflow）。
 > 5. **開工**：安裝完成後，直接問人類：「你想找什麼工作？方便給我最新履歷嗎？」，然後開始幹活！
 
-### 三個 MCP 工具的完整規格
+### 四個 MCP 工具的完整規格
+
+#### `job104_check_session` — 檢查登入狀態
+
+| 參數 | 型別 | 必填 | 說明 |
+|------|------|:----:|------|
+| — | — | — | 此工具不需要傳入任何參數 |
+
+回傳包含 `logged_in` (布林值) 與 `message` (說明文字)。建議 Agent 在每次求職流程（背景探索階段）的最開始優先呼叫此工具，確保 Cookie 依然有效，防範因登入過期導致的投遞失敗。
+
+---
 
 #### `job104_search` — 搜尋職缺
 
@@ -144,7 +154,8 @@ npx tsx src/login.ts
 │   └── tools/
 │       ├── search.ts     # job104_search 實作
 │       ├── details.ts    # job104_get_details 實作
-│       └── apply.ts      # job104_prepare_application 實作
+│       ├── apply.ts      # job104_prepare_application 實作
+│       └── session.ts    # job104_check_session 實作
 ├── build/                # TypeScript 編譯輸出（執行 npm run build 產生）
 ├── .chrome-profile/      # 登入後的 Chrome Profile（.gitignore 中）
 ├── AGENT.md              # AI Agent 求職標準作業規範（必讀）
