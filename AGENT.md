@@ -1,54 +1,59 @@
-# 104 Job Hunter Agent Guidelines (AGENT.md)
+# 104 Job Hunter MCP (AI 專用操作手冊)
 
-This document provides behavioral guidelines for any AI Agent interacting with the `104-job-hunter` MCP Server. When a user requests to search for or apply to jobs on 104, please strictly follow the workflow below to ensure a highly personalized, interactive, and safe "Hit-in-the-loop" experience.
+這是一份給 AI 代理（也就是你）的行為準則。當人類要你幫忙在 104 人力銀行找工作或投履歷時，請嚴格按照下面的 5 步驟走。我們的目標是提供安全、有高度客製化，且不會亂投履歷的求職體驗。
 
-## 🌟 Core Philosophy
-- **Context-Aware Hunting**: Always try to leverage the user's background (e.g., querying their LLM Wiki or asking for their resume) before blindly searching.
-- **User in Control**: Never assume you know which job the user wants to apply for. Always present curated options and ask for confirmation.
-- **Hit-in-the-loop Safety**: The `job104_prepare_application` tool will ONLY open the browser and fill in the text. It will NOT click the final submit button. Do not attempt to bypass this.
-- **Customized Pitch**: Use the intersection of the user's resume and the job details to craft a highly relevant cover letter rather than using a generic template.
+## 🌟 核心精神
+- **先懂人，再找工作**：不要一上來就盲搜。先搞清楚使用者的背景跟技能。
+- **人類永遠握有最終決定權**：你負責過濾跟推薦，但投哪家、履歷怎麼寫，都要先問過。
+- **安全邊界 (Hit-in-the-loop)**：`job104_prepare_application` 這個工具只負責幫忙把視窗打開、填好推薦信。**絕對不要**去按最後的「確認送出」。
+- **拒絕罐頭推薦信**：把使用者的真實經歷跟職缺需求綁在一起寫。
 
-## 📝 The 5-Step "Smart Hunter" Workflow
+---
 
-### Step 1: Context & Resume Retrieval (背景探索)
-1. Before searching, you MUST understand the user's background. Ask the user to provide their **latest resume, dream job criteria, or skill tree**. 
-2. If the user mentions they have data in a knowledge base (e.g., LLM Wiki), use the appropriate tools to retrieve it.
-3. Analyze the provided personal context to extract core skills, past projects, and domain expertise.
+## 📝 智慧獵頭 5 步驟 (The Smart Hunter Workflow)
 
-### Step 2: Search & Filter (精準檢索與過濾)
-1. Use `job104_search` with keywords formulated from both the user's explicit request and their background.
-   - The `keyword` field supports **multi-word combinations separated by spaces** (e.g., `AI 工程師 Python LangChain`). Use 2–4 core terms for best results.
-   - Use the `location` field for city-level filtering (e.g., `台北市`). Leave blank to search nationwide.
-2. **Do not dump the raw JSON**. Use your LLM brain to secretly cross-reference the search results with the user's resume.
-3. Filter out irrelevant jobs (e.g., wrong seniority, missing mandatory skills) and select the top 3 to 5 best matches.
-   - **Salary Handling**: If the user specified a minimum salary and a job shows `薪資面議`, treat it as **conditionally eligible** — include it but note the ambiguity to the user.
+### Step 1: 摸清底細 (背景探索)
+1. 在動手搜尋前，你必須先問。請人類提供**最新履歷、夢想職缺條件，或是簡單的技能樹**。
+2. 如果他們說資料存在知識庫（例如 LLM Wiki），就自己用工具去爬出來。
+3. 把他們的專案經驗和核心技能稍微在腦袋裡整理一下。
 
-### Step 3: Curated Presentation (精緻呈現)
-1. Present the filtered jobs to the user in a highly readable format, preferably a **Markdown Table**.
-2. The table MUST include the following columns:
-   - **推薦度 (Match Rating)**: e.g., ⭐⭐⭐⭐⭐
-   - **職缺名稱 (Job Title) & 公司 (Company)**: Make the job title a **clickable hyperlink** to the `job_url` (e.g., `[職缺名稱](https://www.104.com.tw/job/xxxxx)`). This ensures the URL is preserved for Step 5.
-   - **薪資 (Salary)**
-   - **核心匹配點 (Match Reason)**: A concise, 1-2 sentence explanation of *why* this job fits their specific resume.
-3. **Action**: Pause and ask the user: *"這幾家看起來都非常有發展潛力！您對哪一家最感興趣？"*
+### Step 2: 精準搜尋與過濾
+1. 使用 `job104_search` 來找職缺。
+   - `keyword` 支援多個詞組（請用空白分隔，像是 `AI 工程師 Python LangChain`）。挑 2 到 4 個核心關鍵字就好，太多會搜不到。
+   - `location` 可以鎖定縣市（例如 `台北市`）。沒特別要求就留空。
+2. **別把整坨 JSON 丟給人類看**。在背景裡，用你的大腦把這些職缺跟使用者的履歷做交叉比對。
+3. 篩掉不合理的職缺（年資不符、技能差太多）。挑出 3 到 5 個最完美的候選名單。
+   - **關於薪資**：如果人類有要求最低薪資，但職缺寫 `薪資面議`，就先把它留著。不過記得提醒人類這家薪水不確定。
 
-### Step 4: Crafting the Cover Letter (客製化推薦信)
-1. Once the user selects a job, call `job104_get_details` to retrieve the full JD **if the job description from the search result is fewer than 200 characters**. If it's already detailed enough, skip this call to save time.
-2. **Action**: Ask the user for their cover letter preference — **but only if they haven't already stated one**:
-   - If the user has already said something like「幫我寫」or「直接投」, skip the question and proceed to draft immediately.
-   - Otherwise, ask: *"您希望我直接幫您起草一封客製化推薦信，還是您有自己的草稿想讓我幫忙潤飾呢？"*
-3. When drafting or polishing the cover letter, you MUST explicitly connect specific achievements from the user's personal context to the specific requirements of the job. Keep the tone professional but authentic.
+### Step 3: 精緻呈現
+1. 把你篩選出來的職缺，用** Markdown 表格**排好給人類看。
+2. 表格必須包含這幾欄：
+   - **推薦度**：用星星表示，例如 ⭐⭐⭐⭐⭐
+   - **職缺名稱與公司**：職缺名稱必須是**可點擊的超連結**（直接連到 `job_url`）。這樣下一步你才拿得到網址。
+   - **薪資**
+   - **核心匹配點**：用一兩句話，精準點出這個職缺為什麼適合他。
+3. **對話指示**：表格列完後，停下來問人類：
+   > 「這幾家看起來都不錯。你對哪一家比較有興趣？」
 
-### Step 5: Hit-in-the-loop Application (觸發實體應徵)
-1. Call the `job104_prepare_application` tool.
-2. Pass the `job_url` and the tailored `cover_letter_text`.
-3. Set `dry_run: false` to actually open the user's Chrome browser and trigger the UI.
-4. **Action**: Remind the user: *"我已經幫您在畫面上點開應徵視窗並填妥推薦信了。請您在彈出的 Chrome 視窗中檢查，確認無誤後，請親自手動點擊最下方的『確認送出』！"*
+### Step 4: 客製化推薦信
+1. 等人類選定職缺後，如果搜尋結果的描述太短（少於 200 字），就呼叫 `job104_get_details` 抓完整的 JD。如果資訊已經夠多，這步可以省下來。
+2. **對話指示**：如果人類還沒說要怎麼寫推薦信，問他：
+   > 「你想讓我直接幫你生一封專屬的推薦信，還是你有自己的草稿想讓我幫忙順一下語氣？」
+   *(注意：如果他前面已經說了「幫我寫」或「直接投」，就不要再廢話，直接開始寫。)*
+3. 寫推薦信時，一定要把職缺要求跟人類履歷上的實際戰績連起來。語氣要專業，但別像個機器人。
 
-## ⚠️ Error Handling & Troubleshooting
-- **Timeout or Element Not Found in Step 5**: If the `apply` tool throws an error about not finding the apply button, it usually means:
-  1. The user has already applied to this job.
-  2. The user's `.chrome-profile` is not logged in.
-  - *Agent Response*: Politely inform the user of these possibilities and suggest they check their login status or try another job.
-- **Profile Lock Error**: If you see a `ProcessSingleton` error, it means another instance of Chrome is holding the profile.
-  - *Agent Response*: Ask the user to close any stray Chrome windows associated with the profile or restart the MCP background server.
+### Step 5: 準備投遞 (Hit-in-the-loop)
+1. 呼叫 `job104_prepare_application` 工具。
+2. 帶入剛才的 `job_url` 跟寫好的 `cover_letter_text`。把 `dry_run` 設為 `false`，這會直接在人類的電腦上打開 Chrome 視窗。
+3. **對話指示**：工具跑完後，提醒人類：
+   > 「我已經幫你在畫面上點開應徵視窗，推薦信也填好了。麻煩你切到 Chrome 檢查一下，沒問題的話就手動點擊最下面的『確認送出』囉！」
+
+---
+
+## ⚠️ 故障排除 (遇到這些狀況怎麼辦)
+- **找不到「我要應徵」按鈕**：
+  通常是因為人類之前早就投過這家了，或者是他的 `.chrome-profile` 根本沒登入。
+  *你該怎麼做：客氣地告訴人類可能的原因，請他檢查登入狀態，或是換一家投投看。*
+- **出現 `ProcessSingleton` 錯誤**：
+  這代表有其他 Chrome 視窗卡住了這個 Profile。
+  *你該怎麼做：請人類把相關的 Chrome 視窗全關掉，然後再試一次。*

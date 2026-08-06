@@ -60,9 +60,9 @@ npx tsx src/login.ts
 
 ### Step 4 — 設定 Agent 行為規範（強烈建議）
 
-本專案附帶 [`AGENT.md`](./AGENT.md)，這份文件定義了 AI 如何使用工具來幫你找工作——包含主動索取履歷、精準媒合、客製化推薦信到 Hit-in-the-loop 投遞的完整流程。
+本專案附帶 [`AGENT.md`](./AGENT.md)，這是一份寫給 AI 看的「獵頭守則」。裡面規定了 AI 該怎麼主動要履歷、怎麼精準媒合，以及最重要的——絕不偷按送出按鈕。
 
-**請選擇適合你的安裝方式，讓你的 AI 讀取這份規範：**
+**強烈建議你選一個方法，把這份規範裝進你的 AI 腦袋裡：**
 
 | AI 工具 | 安裝方法 |
 |---------|---------|
@@ -77,23 +77,15 @@ npx tsx src/login.ts
 
 ## 🤖 AI Agent 使用手冊
 
-> **以下內容由你的 AI 助理閱讀並執行。如果你正在幫人類安裝這個 MCP，請閱讀本節並依指示操作。**
-
-### 快速安裝 Checklist（給 AI 執行）
-
-如果你是被人類指派來完成安裝的 Agent，請依序確認並執行以下步驟：
-
-- [ ] 執行 `git clone`、`npm install`、`npm run build`
-- [ ] 提示人類執行 `npx tsx src/login.ts` 並完成 104 手動登入
-- [ ] 協助人類找到其 MCP 客戶端的設定檔，寫入正確的絕對路徑設定
-- [ ] 提示人類重啟 AI 客戶端
-- [ ] **必須閱讀** [`AGENT.md`](./AGENT.md) 並告知人類你已理解求職流程
-- [ ] **主動建議人類將 `AGENT.md` 安裝至其 AI 系統的規範中**，以確保日後每次呼叫這個 MCP 時，AI 都能按照標準流程服務。根據其使用的工具，給予對應建議：
-  - **Antigravity**：放入 `.agents/rules/` 資料夾，或存成 `~/.gemini/config/skills/104-hunter/SKILL.md`
-  - **Cursor**：加入 `.cursorrules`
-  - **Claude Desktop**：加入 System Prompt
-  - **其他工具**：在每次使用前，直接告訴 AI：「請先閱讀專案內的 `AGENT.md`」
-- [ ] 主動詢問人類的履歷、夢想職缺或技能樹，開始執行 Smart Hunter Workflow
+> **給下一個 AI Agent 的交接指令 (System Prompt for AI Agents)**
+> 
+> 如果你是被人類指派來閱讀這份文件的 AI Agent，你的任務是幫他把這個 MCP 伺服器裝好並跑起來。請依序完成以下動作：
+> 
+> 1. **安裝與建置**：在終端機幫人類執行 `git clone`、`npm install` 跟 `npm run build`。
+> 2. **搞定登入狀態**：請人類執行 `npx tsx src/login.ts`，並在彈出的瀏覽器中手動登入 104（這會產出必要的 Cookie）。
+> 3. **掛載 MCP 伺服器**：幫人類把這個 MCP 的絕對路徑寫進他們的設定檔裡（例如 `mcp_config.json` 或 Claude Desktop config）。
+> 4. **讀取行為規範 (重要！)**：你**必須**去讀專案根目錄下的 [`AGENT.md`](./AGENT.md)。裡面寫了你該怎麼用這些工具來幫人類找工作（包含 5-Step Smart Hunter Workflow）。
+> 5. **開工**：安裝完成後，直接問人類：「你想找什麼工作？方便給我最新履歷嗎？」，然後開始幹活！
 
 ### 三個 MCP 工具的完整規格
 
