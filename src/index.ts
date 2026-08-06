@@ -3,6 +3,8 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { searchJobs, SearchArgsSchema } from "./tools/search";
 import { getJobDetails, DetailsArgsSchema } from "./tools/details";
 import { prepareApplication, ApplyArgsSchema } from "./tools/apply";
+import { checkSession, SessionArgsSchema } from "./tools/session";
+
 
 // 建立 MCP 伺服器實例
 const server = new McpServer({
@@ -43,6 +45,19 @@ server.tool(
     ApplyArgsSchema.shape,
     async (args) => {
         const result = await prepareApplication(args as any);
+        return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+        };
+    }
+);
+
+// 註冊 Session 健康檢查工具
+server.tool(
+    "job104_check_session",
+    "檢查 104 人力銀行的登入狀態。在開始求職流程前，可呼叫此工具確認 Cookie 是否仍有效，避免在最後投遞時才發現未登入。",
+    SessionArgsSchema.shape,
+    async (args) => {
+        const result = await checkSession(args as any);
         return {
             content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
         };
