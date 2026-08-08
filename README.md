@@ -211,10 +211,13 @@ npx tsx src/login.ts
 │       ├── search.ts     # job104_search 實作
 │       ├── details.ts    # job104_get_details 實作
 │       ├── apply.ts      # job104_prepare_application 實作
+│       ├── company.ts    # job104_search_companies, job104_get_company_detail 實作
+│       ├── save.ts       # job104_save_job, job104_save_company 實作
 │       └── session.ts    # job104_check_session 實作
 ├── build/                # TypeScript 編譯輸出（執行 npm run build 產生）
 ├── .chrome-profile/      # 登入後的 Chrome Profile（.gitignore 中）
-├── AGENT.md              # AI Agent 求職標準作業規範（必讀）
+├── AGENT.md              # AI Agent 求職標準作業規範（劇本模板）
+├── MY_PROFILE.example.md # 使用者求職個人宣言（模糊偏好填寫範本）
 ├── package.json
 └── tsconfig.json
 ```
