@@ -4,3 +4,4 @@ dist/
 .env
 *.log
 .chrome-profile/
+MY_PROFILE.md

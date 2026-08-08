@@ -69,16 +69,23 @@ npx tsx src/login.ts
 
 ### Step 4 — 設定 Agent 行為規範（強烈建議）
 
-本專案附帶 [`AGENT.md`](./AGENT.md)，這是一份寫給 AI 看的「獵頭守則」。裡面規定了 AI 該怎麼主動要履歷、怎麼精準媒合，以及最重要的——絕不偷按送出按鈕。
+本專案採用 **混合式架構 (Hybrid Architecture)** 來指導 AI：
 
-**強烈建議你選一個方法，把這份規範裝進你的 AI 腦袋裡：**
+1. **`AGENT.md` (劇本模板)**：這是一份寫給 AI 看的「獵頭守則」，規定了 AI 該怎麼主動要履歷、怎麼精準媒合，以及最重要的——絕不偷按送出按鈕。
+2. **`MY_PROFILE.md` (個人宣言)**：這是一份模糊文件，用來告訴 AI 你的技能樹、薪資底線、不喜歡的公司文化等。
+
+**安裝步驟：**
+
+1. 複製專案根目錄的 `MY_PROFILE.example.md`，並重新命名為 `MY_PROFILE.md`（已加入 `.gitignore` 保護隱私）。
+2. 在 `MY_PROFILE.md` 中填入你的求職偏好與地雷。
+3. 把 `AGENT.md` 裝進你的 AI 腦袋裡：
 
 | AI 工具 | 安裝方法 |
 |---------|---------|
 | **Antigravity** | 將 `AGENT.md` 放入 `.agents/rules/` 資料夾，或存成全域 Skill 於 `~/.gemini/config/skills/104-hunter/SKILL.md` |
 | **Cursor** | 將 `AGENT.md` 的內容加入專案的 `.cursorrules` |
 | **Claude Desktop** | 將 `AGENT.md` 的內容加入 System Prompt |
-| **任何 Agent 工具** | 在對話開始時，請人類直接告訴 AI：「請閱讀專案內的 AGENT.md 並按照流程幫我找工作」 |
+| **任何 Agent 工具** | 在對話開始時，請人類直接告訴 AI：「請閱讀專案內的 MY_PROFILE.md 與 AGENT.md 並按照流程幫我找工作」 |
 
 ---
 
