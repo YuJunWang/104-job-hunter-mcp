@@ -11,7 +11,7 @@ export async function checkSession(_args: SessionArgs) {
     console.error('[Session] Checking login status via 104 member dashboard...');
 
     try {
-        await page.goto('https://my.104.com.tw/', {
+        await page.goto('https://pda.104.com.tw/my104', {
             waitUntil: 'domcontentloaded',
             timeout: 15000
         });

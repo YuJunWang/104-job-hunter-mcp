@@ -11,8 +11,8 @@ export const ApplyArgsSchema = z.object({
 export type ApplyArgs = z.infer<typeof ApplyArgsSchema>;
 
 export async function prepareApplication(args: ApplyArgs) {
-    const page = await getBrowserPage();
-    const { job_url, cover_letter_text, dry_run } = args;
+    const { job_url, cover_letter_text, dry_run = false } = args;
+    const page = await getBrowserPage(dry_run);
 
     console.error(`[Apply] Navigating to ${job_url} (dry_run=${dry_run})`);
     await page.goto(job_url, { waitUntil: 'domcontentloaded' });
