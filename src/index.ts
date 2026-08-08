@@ -4,6 +4,8 @@ import { searchJobs, SearchArgsSchema } from "./tools/search";
 import { getJobDetails, DetailsArgsSchema } from "./tools/details";
 import { prepareApplication, ApplyArgsSchema } from "./tools/apply";
 import { checkSession, SessionArgsSchema } from "./tools/session";
+import { searchCompanies, SearchCompanyArgsSchema, getCompanyDetail, CompanyDetailArgsSchema } from "./tools/company";
+import { saveJob, SaveJobArgsSchema, saveCompany, SaveCompanyArgsSchema } from "./tools/save";
 
 
 // 建立 MCP 伺服器實例
@@ -58,6 +60,58 @@ server.tool(
     SessionArgsSchema.shape,
     async (args) => {
         const result = await checkSession(args as any);
+        return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+        };
+    }
+);
+
+// 註冊搜尋公司工具
+server.tool(
+    "job104_search_companies",
+    "搜尋 104 人力銀行上的公司資訊，可根據公司名稱關鍵字搜尋，回傳包含產業別、地點、現有職缺數量等資訊。",
+    SearchCompanyArgsSchema.shape,
+    async (args) => {
+        const result = await searchCompanies(args as any);
+        return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+        };
+    }
+);
+
+// 註冊取得公司詳細資訊工具
+server.tool(
+    "job104_get_company_detail",
+    "取得單一公司的詳細內容，包含公司簡介、福利制度、聯絡人資訊，並預設一併回傳該公司的開放職缺列表。",
+    CompanyDetailArgsSchema.shape,
+    async (args) => {
+        const result = await getCompanyDetail(args as any);
+        return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+        };
+    }
+);
+
+// 註冊收藏職缺工具
+server.tool(
+    "job104_save_job",
+    "將指定的職缺代碼加入您 104 帳號的「我的收藏」中。此工具會直接執行寫入操作，需先確認已登入。",
+    SaveJobArgsSchema.shape,
+    async (args) => {
+        const result = await saveJob(args as any);
+        return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+        };
+    }
+);
+
+// 註冊追蹤公司工具
+server.tool(
+    "job104_save_company",
+    "將指定的公司代碼加入您 104 帳號的追蹤名單中。此工具會直接執行寫入操作，需先確認已登入。",
+    SaveCompanyArgsSchema.shape,
+    async (args) => {
+        const result = await saveCompany(args as any);
         return {
             content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
         };
