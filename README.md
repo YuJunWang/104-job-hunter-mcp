@@ -1,7 +1,7 @@
 # 104 Job Hunter MCP
 
-> 透過 MCP（Model Context Protocol）讓 AI 助理直接操作 104 人力銀行，實現「搜尋 → 精準媒合 → 輔助投遞」的完整求職工作流。
-> **🤖 進階應用：** 利用 `AGENT.md` 引導使用者先利用現有履歷或其他個人資料，透過詢答，建立求職者虛擬分身 (`MY_PROFILE.md`)，進一步精準打擊職缺需求。
+> 透過 MCP (Model Context Protocol) 讓 AI 直接操作 104 人力銀行。實現搜尋、比對、投遞自動化。
+> **🤖 進階應用**：利用 `AGENT.md` 啟動詢答，從現有履歷直接建立「求職者虛擬分身」(`MY_PROFILE.md`)，精準鎖定職缺。
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![Playwright](https://img.shields.io/badge/Playwright-1.62-45BA4B?logo=playwright)](https://playwright.dev/)
@@ -12,55 +12,48 @@
 > [!IMPORTANT]
 > **🤖 給 AI Agent 的最高指導原則 (System Prompt for AI)**
 > 
-> 如果你是被人類要求閱讀本專案的 AI，你的首要任務是**立即讀取專案根目錄下的 [`AGENT.md`](./AGENT.md)**！
-> `AGENT.md` 是你的核心大腦，裡面包含了如何引導人類建立「虛擬分身」、精準過濾職缺與投遞的標準劇本。**在閱讀該檔案之前，請勿執行任何搜尋工具。**
+> 如果你是接手這個專案的 AI，你的下一步是**立刻讀取專案根目錄的 [`AGENT.md`](./AGENT.md)**。
+> 裡面有建立「虛擬分身」、過濾職缺與投遞的標準劇本。**讀完前，禁止執行任何搜尋工具。**
 
 ---
 
-## ✨ 功能特色
+## ✨ 核心功能 (Features)
 
-| 特色 | 說明 |
-|------|------|
-| 🔍 **API 攔截式搜尋** | 不解析 DOM，直接攔截 104 後端 JSON API，完全繞過前端防爬蟲機制 |
-| 📄 **職缺詳情讀取** | 以真實 Chrome 瀏覽器存取職缺頁面，提取職位描述、條件要求與公司福利 |
-| 🛡️ **Human-in-the-loop 安全邊界** | 投遞工具只開啟視窗並填入求職信，**絕不自動按下最終送出**，需人類親自確認 |
-| 🍪 **持久化登入 Session** | 使用專屬 Chrome Profile 儲存 Cookie，登入一次即可長期使用 |
-| 🤖 **Agent 行為規範** | 內建 `AGENT.md` 定義 5-Step Smart Hunter Workflow，確保 AI 助理按照最佳流程幫你找工作 |
+- 🔍 **API 攔截式搜尋**：直接攔截 104 後端 JSON API，繞過前端防爬蟲機制。
+- 📄 **職缺詳情讀取**：用真實 Chrome 提取職位描述、條件要求與福利。
+- 🛡️ **Hit-in-the-loop 安全機制**：投遞工具只會填好求職信，**絕對不會幫你按送出**。
+- 🍪 **持久化登入**：Cookie 存入專屬 Chrome Profile，免重複登入。
+- 🤖 **Agent 行為規範**：內建 `AGENT.md` 提供自動化求職劇本。
 
-## 🔒 隱私與安全說明 (Privacy & Security)
+## 🔒 隱私與安全 (Privacy & Security)
 
-許多人在使用自動化或 AI 輔助工具時，會擔心帳號與密碼的安全性。本專案在設計上嚴格遵循「**本地優先 (Local-First)**」安全原則，你可以放心使用：
+這個工具採用**本地優先 (Local-First)** 架構，確保帳號安全：
 
-- 💻 **100% 本地運行**：MCP 是一個本機協議。這個伺服器只運行在你的電腦上，**絕對不會**將你的帳號、密碼或 Cookie 傳送到外部的雲端伺服器。
-- 🔑 **不經手帳號密碼**：在執行登入步驟時，程式只是幫你開啟一個本地 Chrome 視窗。你是在 104 官方登入頁面上進行登入，程式碼完全不會讀取或紀錄你的密碼。
-- 🍪 **安全儲存 Cookie**：登入完成後，瀏覽器的 Cookie 會以加密形式存在你本機的 `.chrome-profile/` 資料夾中。該資料夾已列入 `.gitignore`，**絕對不會**隨著 Git 被上傳到 GitHub。
-- 🔍 **開源透明**：本專案程式碼完全開源，你可以隨時檢查 `src/browser.ts` 等程式碼，確認其中沒有任何將資料傳送至第三方伺服器的後門。
+1. **100% 本地執行**：MCP 伺服器只在你的電腦上跑，不回傳帳號密碼。
+2. **不經手密碼**：登入時會跳出本地 Chrome，你自己在 104 官方頁面登入。
+3. **Cookie 安全隔離**：加密存在本機的 `.chrome-profile/`。該資料夾已列入 `.gitignore`，不會上傳 GitHub。
 
 ---
 
-## 🚀 安裝與設定
+## 🚀 安裝與執行 (Setup)
 
-### Step 1 — Clone 專案並建置
+### 1. Clone 專案與建置
 ```bash
 git clone https://github.com/YuJunWang/104-job-hunter-mcp.git
 cd 104-job-hunter-mcp
 npm install
 npm run build
 ```
+*(系統需求：Node.js 18+、Google Chrome)*
 
-**系統需求**：Node.js 18+、Google Chrome、npm 9+
-
-### Step 2 — 登入你的 104 帳號（只需一次）
+### 2. 登入 104 帳號（只需一次）
 ```bash
 npx tsx src/login.ts
 ```
-執行後會彈出 Chrome 視窗，請**手動登入你的 104 帳號**後關閉視窗。Cookie 會自動存入 `.chrome-profile/` 資料夾。
+執行後會跳出 Chrome 視窗，請手動登入 104，完成後關閉視窗。
 
-> [!IMPORTANT]
-> `.chrome-profile/` 已加入 `.gitignore`，你的 Session 不會被推送到 GitHub。
-
-### Step 3 — 掛載 MCP 伺服器
-將以下設定加入你的 MCP 客戶端設定檔（如 Antigravity `mcp_config.json` 或 Claude Desktop `config.json`）：
+### 3. 掛載 MCP 伺服器
+把以下設定貼進 MCP 客戶端設定檔（如 Antigravity 的 `mcp_config.json` 或 Claude Desktop `config.json`）：
 
 ```json
 {
@@ -72,138 +65,68 @@ npx tsx src/login.ts
   }
 }
 ```
-> Windows 使用者請注意路徑反斜線跳脫：`C:\\Users\\你的帳號\\...\\build\\index.js`
+*(Windows 使用者請注意路徑反斜線跳脫：`C:\\Users\\你的帳號\\...\\build\\index.js`)*
 
-重啟 AI 客戶端後，MCP 工具即可使用。
+重啟 AI 客戶端，工具就準備好了。
 
-### Step 4 — 設定 Agent 行為規範（強烈建議）
+### 4. 設定 AI 腦袋 (Agent 規範)
 
-本專案採用 **混合式架構 (Hybrid Architecture)** 來指導 AI：
-
-1. **`AGENT.md` (劇本模板)**：這是一份寫給 AI 看的「獵頭守則」，規定了 AI 該怎麼主動要履歷、怎麼精準媒合，以及最重要的——絕不偷按送出按鈕。
-2. **`MY_PROFILE.md` (個人宣言)**：這是一份模糊文件，用來告訴 AI 你的技能樹、薪資底線、不喜歡的公司文化等。
-
-**安裝步驟：**
-
-1. 複製專案根目錄的 `MY_PROFILE.example.md`，並重新命名為 `MY_PROFILE.md`（已加入 `.gitignore` 保護隱私）。
-2. 在 `MY_PROFILE.md` 中填入你的求職偏好與地雷。
-3. 把 `AGENT.md` 裝進你的 AI 腦袋裡：
-
-| AI 工具 | 安裝方法 |
-|---------|---------|
-| **Antigravity** | 將 `AGENT.md` 放入 `.agents/rules/` 資料夾，或存成全域 Skill 於 `~/.gemini/config/skills/104-hunter/SKILL.md` |
-| **Cursor** | 將 `AGENT.md` 的內容加入專案的 `.cursorrules` |
-| **Claude Desktop** | 將 `AGENT.md` 的內容加入 System Prompt |
-| **任何 Agent 工具** | 在對話開始時，請人類直接告訴 AI：「請閱讀專案內的 MY_PROFILE.md 與 AGENT.md 並按照流程幫我找工作」 |
-
----
+1. 複製根目錄的 `MY_PROFILE.example.md`，重新命名為 `MY_PROFILE.md`。
+2. 填入你的求職偏好與地雷。
+3. 讓 AI 讀取 `AGENT.md`：
+   - **Antigravity**：將 `AGENT.md` 放進 `.agents/rules/`，或存成全域 Skill (`~/.gemini/config/skills/104-hunter/SKILL.md`)。
+   - **Cursor**：把 `AGENT.md` 內容貼進 `.cursorrules`。
+   - **Claude Desktop**：貼進 System Prompt。
+   - **直接講**：「請閱讀專案內的 MY_PROFILE.md 與 AGENT.md 並按照流程幫我找工作」。
 
 ---
 
 ## 🤖 AI Agent 開發與操作手冊
 
-> **給 AI Agent 的環境建置交接指令**
+> **給 AI 的環境建置交接指令**
 > 
-> 如果你是被派來幫人類「安裝」這個 MCP 伺服器的 AI，請依序完成以下動作：
-> 
-> 1. **安裝與建置**：在終端機幫人類執行 `git clone`、`npm install` 跟 `npm run build`。
-> 2. **搞定登入狀態**：請人類執行 `npx tsx src/login.ts`，並在彈出的瀏覽器中手動登入 104（這會產出必要的 Cookie）。
-> 3. **掛載 MCP 伺服器**：幫人類把這個 MCP 的絕對路徑寫進他們的設定檔裡（例如 `mcp_config.json` 或 Claude Desktop config）。
-> 4. **讀取行為規範 (重要！)**：你**必須**去讀專案根目錄下的 [`AGENT.md`](./AGENT.md)，了解後續的求職詢答與操作劇本。
-> 5. **開工**：安裝完成後，直接開始依據 `AGENT.md` 引導人類建立 `MY_PROFILE.md`。
+> 如果你是負責幫人類安裝 MCP 的 AI，請執行以下步驟：
+> 1. 跑 `git clone`、`npm install` 跟 `npm run build`。
+> 2. 請人類跑 `npx tsx src/login.ts` 並手動登入。
+> 3. 幫人類把 MCP 絕對路徑寫進設定檔。
+> 4. **讀取 [`AGENT.md`](./AGENT.md)** 了解操作劇本。
+> 5. 依據 `AGENT.md` 引導人類建立 `MY_PROFILE.md`。
 
-### 八個 MCP 工具的完整規格
+### 工具列表 (MCP Tools)
 
-#### `job104_check_session` — 檢查登入狀態
+#### `job104_check_session`
+- **功能**：檢查登入狀態。
+- **時機**：求職流程的最開頭，確保 Cookie 未過期。
 
-| 參數 | 型別 | 必填 | 說明 |
-|------|------|:----:|------|
-| — | — | — | 此工具不需要傳入任何參數 |
+#### `job104_search`
+- **必填參數**：`keyword` (如：`AI 全端工程師 Python`)
+- **選填參數**：`location` (如：`台北市`)、`page` (預設 1)
+- **注意**：AI 應在背景比對結果，只向人類展示 Top 3～5 筆。
 
-回傳包含 `logged_in` (布林值) 與 `message` (說明文字)。建議 Agent 在每次求職流程（背景探索階段）的最開始優先呼叫此工具，確保 Cookie 依然有效，防範因登入過期導致的投遞失敗。
+#### `job104_get_details`
+- **必填參數**：`job_url`
+- **功能**：獲取職位描述、條件要求與福利。草擬推薦信前必備。
 
----
+#### `job104_prepare_application` (Hit-in-the-loop)
+- **必填參數**：`job_url`
+- **選填參數**：`cover_letter_text`、`dry_run` (預設 false)
+- **注意**：只會開啟投遞確認頁。AI 執行後必須提醒人類：「請手動點擊確認送出」。
 
-#### `job104_search` — 搜尋職缺
+#### `job104_search_companies`
+- **必填參數**：`keyword` (公司名稱)
+- **選填參數**：`page`、`pageSize`
 
-| 參數 | 型別 | 必填 | 說明 |
-|------|------|:----:|------|
-| `keyword` | `string` | ✅ | 關鍵字，可組合多個詞語，如 `AI 全端工程師 Python LangChain` |
-| `location` | `string` | ❌ | 縣市名稱，如 `台北市`、`新北市`（不填則全台搜尋） |
-| `page` | `number` | ❌ | 頁數，預設 `1`，每頁約回傳 10～20 筆 |
+#### `job104_get_company_detail`
+- **必填參數**：`companyInput` (代碼或網址)
+- **功能**：獲取公司福利、產品與開放職缺列表。
 
-> **Agent 注意**：請勿將原始 JSON 直接呈現給人類。應在背景與使用者背景交叉比對後，只呈現 Top 3～5 筆最相關結果。
+#### `job104_save_job`
+- **必填參數**：`jobInput` (代碼或網址)
+- **功能**：將職缺加入 104 收藏。
 
----
-
-#### `job104_get_details` — 取得職缺詳情
-
-| 參數 | 型別 | 必填 | 說明 |
-|------|------|:----:|------|
-| `job_url` | `string` | ✅ | 104 職缺頁面完整 URL，如 `https://www.104.com.tw/job/xxxxxx` |
-
-回傳：職缺標題、公司名稱、完整職位描述、應徵條件、公司福利。在草擬推薦信前使用可提升媒合精準度。
-
----
-
-#### `job104_prepare_application` — 準備投遞（Hit-in-the-loop）
-
-| 參數 | 型別 | 必填 | 說明 |
-|------|------|:----:|------|
-| `job_url` | `string` | ✅ | 104 職缺頁面完整 URL |
-| `cover_letter_text` | `string` | ❌ | 求職信 / 自傳內容，會自動填入應徵表單 |
-| `dry_run` | `boolean` | ❌ | 預設 `false`；設為 `true` 時只模擬，不真的開啟瀏覽器 |
-
-> [!CAUTION]
-> **安全邊界**：此工具執行完畢後，瀏覽器畫面會停留在投遞確認頁。**AI 不會也不應該代替人類按下最終送出按鈕。** 執行後務必提醒人類前往 Chrome 視窗手動確認送出。
-
----
-
-#### `job104_search_companies` — 搜尋公司
-
-| 參數 | 型別 | 必填 | 說明 |
-|------|------|:----:|------|
-| `keyword` | `string` | ✅ | 公司名稱關鍵字，如 `台積電` 或 `Google` |
-| `page` | `number` | ❌ | 頁數，預設 `1` |
-| `pageSize` | `number` | ❌ | 每頁顯示數量，預設 `10` |
-
----
-
-#### `job104_get_company_detail` — 取得公司詳情
-
-| 參數 | 型別 | 必填 | 說明 |
-|------|------|:----:|------|
-| `companyInput` | `string` | ✅ | 公司代碼或是完整網址，如 `1a2x6bmutz` 或 `https://www.104.com.tw/company/1a2x6bmutz` |
-
-回傳：公司完整簡介、產品、福利、聯絡人資訊，並**預設回傳該公司目前所有開放的職缺列表**。適合用於深度調研特定企業。
-
----
-
-#### `job104_save_job` — 收藏職缺
-
-| 參數 | 型別 | 必填 | 說明 |
-|------|------|:----:|------|
-| `jobInput` | `string` | ✅ | 職缺代碼或是完整網址，如 `796uv` |
-
-呼叫後會直接以目前的登入狀態發送請求，將該職缺加入使用者的「我的收藏」。需確認登入狀態有效。
-
----
-
-#### `job104_save_company` — 追蹤公司
-
-| 參數 | 型別 | 必填 | 說明 |
-|------|------|:----:|------|
-| `companyInput` | `string` | ✅ | 公司代碼或是完整網址，如 `1a2x6bmutz` |
-
-呼叫後會直接發送請求，將該公司加入追蹤名單。需確認登入狀態有效。
-
-### 故障排除
-
-| 錯誤現象 | 可能原因 | 建議處置 |
-|---------|---------|---------|
-| 找不到「我要應徵」按鈕 | ① 已應徵過此職缺 ② Cookie 失效未登入 | 提醒人類確認登入狀態，或改選其他職缺 |
-| `ProcessSingleton` 鎖定錯誤 | 另一個 Chrome 實例持有 `.chrome-profile` | 請人類關閉所有相關 Chrome 視窗後重試 |
-| Cookie 失效 / 被導向登入頁 | 30 天以上未使用，Session 到期 | 請人類重新執行 `npx tsx src/login.ts` |
+#### `job104_save_company`
+- **必填參數**：`companyInput` (代碼或網址)
+- **功能**：追蹤公司。
 
 ---
 
@@ -212,27 +135,21 @@ npx tsx src/login.ts
 ```
 104-job-hunter-mcp/
 ├── src/
-│   ├── index.ts          # MCP Server 主程式，工具註冊入口
-│   ├── browser.ts        # Playwright 瀏覽器單例管理（整合 Stealth Plugin）
-│   ├── login.ts          # 首次登入輔助腳本
-│   ├── test-client.ts    # 本地 E2E 測試用客戶端
+│   ├── index.ts          # MCP 主程式，工具註冊入口
+│   ├── browser.ts        # Playwright 瀏覽器單例管理 (含 Stealth Plugin)
+│   ├── login.ts          # 登入輔助腳本
+│   ├── test-client.ts    # 本地測試客戶端
 │   └── tools/
-│       ├── search.ts     # job104_search 實作
-│       ├── details.ts    # job104_get_details 實作
-│       ├── apply.ts      # job104_prepare_application 實作
-│       ├── company.ts    # job104_search_companies, job104_get_company_detail 實作
-│       ├── save.ts       # job104_save_job, job104_save_company 實作
-│       └── session.ts    # job104_check_session 實作
-├── build/                # TypeScript 編譯輸出（執行 npm run build 產生）
-├── .chrome-profile/      # 登入後的 Chrome Profile（.gitignore 中）
-├── AGENT.md              # AI Agent 求職標準作業規範（劇本模板）
-├── MY_PROFILE.example.md # 使用者求職個人宣言（模糊偏好填寫範本）
+│       ├── search.ts     # job104_search
+│       ├── details.ts    # job104_get_details
+│       ├── apply.ts      # job104_prepare_application
+│       ├── company.ts    # job104_search_companies, job104_get_company_detail
+│       ├── save.ts       # job104_save_job, job104_save_company
+│       └── session.ts    # job104_check_session
+├── build/                # npm run build 輸出
+├── .chrome-profile/      # Cookie 儲存目錄 (不進 git)
+├── AGENT.md              # AI 操作劇本
+├── MY_PROFILE.example.md # 虛擬分身範本
 ├── package.json
 └── tsconfig.json
 ```
-
----
-
-## 📄 授權
-
-ISC License | *Built with ❤️ using TypeScript + Playwright + MCP SDK*
