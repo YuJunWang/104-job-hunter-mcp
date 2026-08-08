@@ -6,7 +6,7 @@ import { closeBrowser } from './browser';
 async function main() {
     try {
         console.log("=== 測試 1: 搜尋職缺 (AI 全端工程師) ===");
-        const searchResult = await searchJobs({ keyword: 'AI 全端工程師 台北', page: 1 });
+        const searchResult = await searchJobs({ keyword: '前端工程師', page: 1, headless: false });
         
         if (searchResult && searchResult.error) {
             console.log("搜尋失敗:", searchResult.error);

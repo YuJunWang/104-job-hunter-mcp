@@ -30,11 +30,6 @@ export async function getBrowserPage(headless: boolean = true): Promise<Page> {
         context = await chromium.launchPersistentContext(USER_DATA_DIR, {
             headless: headless,
             channel: 'chrome', // 強制使用安裝的 Chrome
-            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-            args: [
-                '--disable-blink-features=AutomationControlled',
-                ...(headless ? [] : ['--start-maximized'])
-            ],
             viewport: headless ? { width: 1280, height: 720 } : null,
         });
 
