@@ -1,7 +1,7 @@
-import { searchJobs } from './tools/search';
-import { getJobDetails } from './tools/details';
-import { prepareApplication } from './tools/apply';
-import { closeBrowser } from './browser';
+import { searchJobs } from '../src/tools/search';
+import { getJobDetails } from '../src/tools/details';
+import { prepareApplication } from '../src/tools/apply';
+import { closeBrowser } from '../src/browser';
 
 async function main() {
     try {
