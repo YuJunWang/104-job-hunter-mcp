@@ -5,3 +5,5 @@ dist/
 *.log
 .chrome-profile/
 MY_PROFILE.md
+
+scratch/
