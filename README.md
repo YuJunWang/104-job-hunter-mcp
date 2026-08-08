@@ -1,6 +1,7 @@
 # 104 Job Hunter MCP
 
 > 透過 MCP（Model Context Protocol）讓 AI 助理直接操作 104 人力銀行，實現「搜尋 → 精準媒合 → 輔助投遞」的完整求職工作流。
+> **🤖 進階應用：** 利用 `AGENT.md` 引導使用者先利用現有履歷或其他個人資料，透過詢答，建立求職者虛擬分身 (`MY_PROFILE.md`)，進一步精準打擊職缺需求。
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![Playwright](https://img.shields.io/badge/Playwright-1.62-45BA4B?logo=playwright)](https://playwright.dev/)
