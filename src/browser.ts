@@ -30,7 +30,8 @@ export async function getBrowserPage(headless: boolean = true): Promise<Page> {
         context = await chromium.launchPersistentContext(USER_DATA_DIR, {
             headless: headless,
             channel: 'chrome', // 強制使用安裝的 Chrome
-            viewport: headless ? { width: 1280, height: 720 } : null,
+            args: headless ? [] : ['--window-size=800,600'],
+            viewport: headless ? { width: 1280, height: 720 } : { width: 800, height: 600 },
         });
 
         currentHeadlessState = headless;
