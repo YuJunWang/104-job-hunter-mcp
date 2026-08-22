@@ -4,15 +4,14 @@ import { z } from 'zod';
 export const SearchArgsSchema = z.object({
     keyword: z.string().describe("職缺關鍵字，例如 '前端工程師' 或 'Node.js'"),
     location: z.string().optional().describe("工作地點關鍵字，例如 '台北市'（非必要）"),
-    page: z.number().optional().default(1).describe("頁數，預設為 1"),
-    headless: z.boolean().optional().default(false).describe("是否以無頭（隱藏）模式執行，若遇到 Cloudflare 阻擋請設為 false 並手動點擊驗證")
+    page: z.number().optional().default(1).describe("頁數，預設為 1")
 });
 
 export type SearchArgs = z.infer<typeof SearchArgsSchema>;
 
 export async function searchJobs(args: SearchArgs) {
-    const { keyword, page: pageNum, headless } = args;
-    const browserPage = await getBrowserPage(headless);
+    const { keyword, page: pageNum } = args;
+    const browserPage = await getBrowserPage(false);
     
     // 建立 104 搜尋網址
     const url = new URL('https://www.104.com.tw/jobs/search/');

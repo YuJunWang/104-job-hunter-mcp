@@ -13,7 +13,7 @@ let currentHeadlessState: boolean | null = null;
 // 使用專案本地的暫存 Profile，避免直接掛載使用者預設 Profile 觸發 Chrome 的安全阻擋
 const USER_DATA_DIR = process.env.CHROME_USER_DATA_DIR || path.join(__dirname, '..', '.chrome-profile');
 
-export async function getBrowserPage(headless: boolean = true): Promise<Page> {
+export async function getBrowserPage(headless: boolean = false): Promise<Page> {
     // 如果已有瀏覽器，且它的 headless 狀態與目前要求的一致，則直接回傳
     if (page && context && currentHeadlessState === headless) {
         return page;
