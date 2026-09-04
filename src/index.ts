@@ -12,7 +12,7 @@ import { getCoverLetters, LettersArgsSchema } from "./tools/letters";
 // 建立 MCP 伺服器實例
 const server = new McpServer({
     name: "104-job-hunter",
-    version: "1.1.0",
+    version: "1.1.2",
 });
 
 // 註冊搜尋工具

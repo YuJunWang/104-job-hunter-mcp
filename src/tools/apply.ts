@@ -1,6 +1,7 @@
 import { getBrowserPage } from '../browser';
 import { z } from 'zod';
 import * as path from 'path';
+import { extractJobId } from '../utils/url';
 
 export const ApplyArgsSchema = z.object({
     job_url: z.string().url().describe("104 職缺頁面網址"),
@@ -15,24 +16,83 @@ export async function prepareApplication(args: ApplyArgs) {
     const { job_url, template_title, cover_letter_text, dry_run = false } = args;
     const page = await getBrowserPage(false);
 
+    const jobId = extractJobId(job_url);
+    let apiIsApplied: boolean | null = null;
+
+    // 第一重防護（API層）：監聽 104 後端 /api/jobs/{jobId} API，取得系統層最真實的 isApplied 旗標
+    const apiHandler = async (response: any) => {
+        if (jobId && response.url().match(new RegExp(`/api/jobs/${jobId}$`))) {
+            page.off('response', apiHandler);
+            try {
+                const json = await response.json();
+                if (typeof json?.data?.header?.isApplied === 'boolean') {
+                    apiIsApplied = json.data.header.isApplied;
+                    console.error(`[Apply] Intercepted 104 Job Detail API: isApplied = ${apiIsApplied}`);
+                }
+            } catch {}
+        }
+    };
+    page.on('response', apiHandler);
+
     console.error(`[Apply] Navigating to ${job_url} (dry_run=${dry_run})`);
     await page.goto(job_url, { waitUntil: 'domcontentloaded' });
     
+    // 短暫等待讓非同步 API 回應或 DOM 初次渲染完成
+    await page.waitForTimeout(1000);
+    page.off('response', apiHandler);
+    
     try {
-        // 先檢查是否已應徵過此職缺
-        const alreadyApplied = await page.locator('button:has-text("已應徵"), .apply-button__button:has-text("已應徵")').first().isVisible().catch(() => false);
-        if (alreadyApplied) {
+        // 第一重防護檢查：後端 API 回傳已應徵
+        if (apiIsApplied === true) {
+            console.error(`[Apply] Confirmed already applied via 104 API response.`);
+            return {
+                status: "already_applied",
+                message: "您先前已應徵過此職缺（由 104 後端紀錄確認），無需重複應徵。"
+            };
+        }
+
+        // 第二重防護（DOM層）：多維度指標比對（包含各種 tag、class、文字變體）
+        const appliedLocator = page.locator(`
+            button:has-text("已應徵"),
+            button:has-text("已投遞"),
+            a:has-text("已應徵"),
+            span:has-text("已應徵"),
+            div:has-text("已應徵"),
+            .apply-button__button:has-text("已應徵"),
+            [class*="applied"]
+        `).first();
+        const domAlreadyApplied = await appliedLocator.isVisible().catch(() => false);
+        if (domAlreadyApplied) {
+            console.error(`[Apply] Confirmed already applied via DOM indicator.`);
             return {
                 status: "already_applied",
                 message: "您先前已應徵過此職缺，無需重複應徵。"
             };
         }
 
-        // 等待「我要應徵」按鈕出現並點擊 (104 新版 UI 可能使用 div 或 button)
+        // 等待「我要應徵」按鈕出現並點擊 (104 新版 UI 可能使用 div、button 或 a)
         const applyBtnLocator = page.locator('.apply-button__button, button:has-text("我要應徵"), button:has-text("應徵")').first();
-        await applyBtnLocator.waitFor({ state: 'visible', timeout: 8000 });
-        await applyBtnLocator.click();
+        try {
+            await applyBtnLocator.waitFor({ state: 'visible', timeout: 8000 });
+        } catch (waitErr) {
+            // 第三重防護（語意診斷）：若按鈕超時未出現，再次檢查頁面狀態
+            const bodyText = await page.textContent('body').catch(() => "") || "";
+            if (bodyText.includes("已應徵") || bodyText.includes("已投遞")) {
+                return {
+                    status: "already_applied",
+                    message: "您先前已應徵過此職缺，無需重複應徵。"
+                };
+            }
+            if (bodyText.includes("職缺已結束") || bodyText.includes("停止招募") || bodyText.includes("職缺已下架")) {
+                return {
+                    status: "job_closed",
+                    message: "此職缺目前已結束招募或已下架。"
+                };
+            }
+            throw waitErr;
+        }
 
+        await applyBtnLocator.click();
         console.error(`[Apply] Clicked '我要應徵' button.`);
         
         // 等待應徵視窗跳出

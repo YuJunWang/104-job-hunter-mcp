@@ -21,7 +21,7 @@ export async function saveJob(args: SaveJobArgs) {
         throw new Error("尚未登入 104 帳號，請先執行登入流程才能使用收藏功能。");
     }
 
-    const page = await getBrowserPage();
+    const page = await getBrowserPage(true);
     const url = `https://www.104.com.tw/job/ajax/save/${jobCode}`;
     const referer = `https://www.104.com.tw/job/${jobCode}`;
 
@@ -62,7 +62,7 @@ export async function saveCompany(args: SaveCompanyArgs) {
         throw new Error("尚未登入 104 帳號，請先執行登入流程才能使用追蹤功能。");
     }
 
-    const page = await getBrowserPage();
+    const page = await getBrowserPage(true);
     const url = `https://www.104.com.tw/api/companies/${companyCode}/follow`;
     const referer = `https://www.104.com.tw/company/${companyCode}`;
 

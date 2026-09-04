@@ -14,9 +14,24 @@ let currentHeadlessState: boolean | null = null;
 const USER_DATA_DIR = process.env.CHROME_USER_DATA_DIR || path.join(__dirname, '..', '.chrome-profile');
 
 export async function getBrowserPage(headless: boolean = false): Promise<Page> {
-    // 如果已有瀏覽器，且它的 headless 狀態與目前要求的一致，則直接回傳
-    if (page && context && currentHeadlessState === headless) {
-        return page;
+    // 檢查現有實例是否可用且符合要求的 headless 狀態
+    if (context && currentHeadlessState === headless) {
+        try {
+            if (page && !page.isClosed()) {
+                return page;
+            }
+            // 若 page 已關閉，嘗試從 context 取得或新建頁面
+            const activePages = context.pages().filter(p => !p.isClosed());
+            if (activePages.length > 0) {
+                page = activePages[0];
+                return page;
+            }
+            page = await context.newPage();
+            return page;
+        } catch (err) {
+            console.error('[Browser] Existing browser context or page is unresponsive. Re-launching...', err);
+            await closeBrowser();
+        }
     }
 
     // 如果目前的 headless 狀態不一致，先關閉舊瀏覽器
@@ -32,6 +47,14 @@ export async function getBrowserPage(headless: boolean = false): Promise<Page> {
             channel: 'chrome', // 強制使用安裝的 Chrome
             args: headless ? [] : ['--window-size=800,600'],
             viewport: headless ? { width: 1280, height: 720 } : { width: 800, height: 600 },
+        });
+
+        // 監聽 context 關閉事件（如使用者手動關閉或 Chrome crash），及時重置單例變數
+        context.on('close', () => {
+            console.error('[Browser] BrowserContext has been closed. Resetting singleton state.');
+            context = null;
+            page = null;
+            currentHeadlessState = null;
         });
 
         currentHeadlessState = headless;
@@ -53,9 +76,14 @@ export async function getBrowserPage(headless: boolean = false): Promise<Page> {
 
 export async function closeBrowser(): Promise<void> {
     if (context) {
-        await context.close();
-        context = null;
-        page = null;
-        currentHeadlessState = null;
+        try {
+            await context.close();
+        } catch (e) {
+            console.error('[Browser] Error while closing context:', (e as Error).message);
+        } finally {
+            context = null;
+            page = null;
+            currentHeadlessState = null;
+        }
     }
 }

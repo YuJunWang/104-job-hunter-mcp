@@ -11,7 +11,7 @@ export const SearchCompanyArgsSchema = z.object({
 export type SearchCompanyArgs = z.infer<typeof SearchCompanyArgsSchema>;
 
 export async function searchCompanies(args: SearchCompanyArgs) {
-    const page = await getBrowserPage();
+    const page = await getBrowserPage(true);
     const query = new URLSearchParams({
         keyword: args.keyword,
         page: args.page.toString(),
@@ -66,7 +66,7 @@ export async function getCompanyDetail(args: CompanyDetailArgs) {
         throw new Error("無法解析公司代碼，請確認輸入是否為正確的 104 公司網址或代碼。");
     }
 
-    const page = await getBrowserPage();
+    const page = await getBrowserPage(true);
     const referer = `https://www.104.com.tw/company/${companyCode}`;
     const detailUrl = `https://www.104.com.tw/api/companies/${companyCode}/content`;
 
