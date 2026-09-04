@@ -14,8 +14,8 @@ let currentHeadlessState: boolean | null = null;
 const USER_DATA_DIR = process.env.CHROME_USER_DATA_DIR || path.join(__dirname, '..', '.chrome-profile');
 
 export async function getBrowserPage(headless: boolean = false): Promise<Page> {
-    // 檢查現有實例是否可用且符合要求的 headless 狀態
-    if (context && currentHeadlessState === headless) {
+    // 檢查現有實例是否可用。若已經有開啟的 context，直接重複使用，避免頻繁重啟與 Windows ProcessSingleton 鎖定衝突
+    if (context) {
         try {
             if (page && !page.isClosed()) {
                 return page;
@@ -32,12 +32,6 @@ export async function getBrowserPage(headless: boolean = false): Promise<Page> {
             console.error('[Browser] Existing browser context or page is unresponsive. Re-launching...', err);
             await closeBrowser();
         }
-    }
-
-    // 如果目前的 headless 狀態不一致，先關閉舊瀏覽器
-    if (context && currentHeadlessState !== headless) {
-        console.error(`[Browser] Headless state changed from ${currentHeadlessState} to ${headless}. Restarting browser...`);
-        await closeBrowser();
     }
 
     try {

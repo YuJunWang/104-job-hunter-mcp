@@ -9,7 +9,7 @@ export const DetailsArgsSchema = z.object({
 export type DetailsArgs = z.infer<typeof DetailsArgsSchema>;
 
 export async function getJobDetails(args: DetailsArgs) {
-    const browserPage = await getBrowserPage(true);
+    const browserPage = await getBrowserPage(false);
     const { job_url } = args;
 
     const jobId = extractJobId(job_url);
@@ -29,8 +29,8 @@ export async function getJobDetails(args: DetailsArgs) {
         }, 15000);
 
         const handler = async (response: any) => {
-            // 精確比對 /api/jobs/{jobId} 的 endpoint
-            if (response.url().match(new RegExp(`/api/jobs/${jobId}$`))) {
+            // 比對 104 的 job detail API (支援 /job/ajax/content/{jobId} 與 /api/jobs/{jobId})
+            if (response.url().includes(`/job/ajax/content/${jobId}`) || response.url().match(new RegExp(`/api/jobs/${jobId}($|\\?)`))) {
                 browserPage.off('response', handler);
                 clearTimeout(timeout);
                 try {
@@ -44,6 +44,7 @@ export async function getJobDetails(args: DetailsArgs) {
 
         browserPage.on('response', handler);
     });
+
 
     await browserPage.goto(job_url, { waitUntil: 'domcontentloaded' });
 

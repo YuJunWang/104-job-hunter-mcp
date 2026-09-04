@@ -11,7 +11,7 @@ export type SearchArgs = z.infer<typeof SearchArgsSchema>;
 
 export async function searchJobs(args: SearchArgs) {
     const { keyword, page: pageNum } = args;
-    const browserPage = await getBrowserPage(true);
+    const browserPage = await getBrowserPage(false);
     
     // 建立 104 搜尋網址
     const url = new URL('https://www.104.com.tw/jobs/search/');
@@ -35,7 +35,7 @@ export async function searchJobs(args: SearchArgs) {
         }, 20000);
 
         const handler = async (response: any) => {
-            if (response.url().includes('/jobs/search/api/jobs')) {
+            if (response.url().includes('/jobs/search/api/jobs') || response.url().includes('/jobs/search/list')) {
                 browserPage.off('response', handler);
                 clearTimeout(timeout);
                 try {
@@ -60,19 +60,21 @@ export async function searchJobs(args: SearchArgs) {
     }
 
     // 將 API 回傳的 JSON 轉換成我們的格式
-    const jobs = (apiData.data || []).map((job: any) => ({
+    const rawList = apiData.data?.list || apiData.data || [];
+    const jobs = (Array.isArray(rawList) ? rawList : []).map((job: any) => ({
         title: job.jobName || '',
         company: job.custName || '',
-        salary: (job.salaryLow && job.salaryLow > 0)
+        salary: job.salaryDesc || ((job.salaryLow && job.salaryLow > 0)
             ? (job.salaryHigh >= 9999999
                 ? `月薪 ${Math.round(job.salaryLow / 10000)} 萬以上`
                 : `月薪 ${Math.round(job.salaryLow / 10000)}～${Math.round(job.salaryHigh / 10000)} 萬`)
-            : '薪資面議',
+            : '薪資面議'),
         location: job.jobAddrNoDesc || '',
         description: job.description || '',
-        link: job.link?.job || '',
+        link: (job.link?.job ? (job.link.job.startsWith('http') ? job.link.job : `https:${job.link.job}`) : (job.jobNo ? `https://www.104.com.tw/job/${job.jobNo}` : '')),
         skills: (job.pcSkills || []).map((s: any) => s.description),
     }));
+
 
     return {
         keyword,
