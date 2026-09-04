@@ -1,7 +1,7 @@
 {
-  "name": "14_104_job_hunter",
-  "version": "1.0.0",
-  "description": "",
+  "name": "104-job-hunter-mcp",
+  "version": "1.1.0",
+  "description": "104 人力銀行 MCP 伺服器，支援職缺搜尋、詳情提取、推薦信讀取與安全應徵準備 (Hit-in-the-loop)",
   "main": "index.js",
   "scripts": {
     "test": "tsx src/__tests__/url.test.ts",

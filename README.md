@@ -1,7 +1,7 @@
 # 104 Job Hunter MCP
 
 > 透過 MCP (Model Context Protocol) 讓 AI 直接操作 104 人力銀行。實現搜尋、比對、投遞自動化。
-> **🤖 進階應用**：利用 `AGENT.md` 啟動詢答，從現有履歷直接建立「求職者虛擬分身」(`MY_PROFILE.md`)，精準鎖定職缺。
+> **🤖 進階應用**：利用 `AGENTS.md` 啟動詢答，從現有履歷直接建立「求職者虛擬分身」(`MY_PROFILE.md`)，精準鎖定職缺。
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![Playwright](https://img.shields.io/badge/Playwright-1.62-45BA4B?logo=playwright)](https://playwright.dev/)
@@ -12,7 +12,7 @@
 > [!IMPORTANT]
 > **🤖 給 AI Agent 的最高指導原則 (System Prompt for AI)**
 > 
-> 如果你是接手這個專案的 AI，你的下一步是**立刻讀取專案根目錄的 [`AGENT.md`](./AGENT.md)**。
+> 如果你是接手這個專案的 AI，你的下一步是**立刻讀取專案根目錄的 [`AGENTS.md`](./AGENTS.md)**。
 > 裡面有建立「虛擬分身」、過濾職缺與投遞的標準劇本。**讀完前，禁止執行任何搜尋工具。**
 
 ---
@@ -23,7 +23,7 @@
 - 📄 **職缺詳情讀取**：用真實 Chrome 提取職位描述、條件要求與福利。
 - 🛡️ **Hit-in-the-loop 安全機制**：投遞工具只會填好求職信，**絕對不會幫你按送出**。
 - 🍪 **持久化登入**：Cookie 存入專屬 Chrome Profile，免重複登入。
-- 🤖 **Agent 行為規範**：內建 `AGENT.md` 提供自動化求職劇本。
+- 🤖 **Agent 行為規範**：內建 `AGENTS.md` 提供自動化求職劇本。
 
 ## 🔒 隱私與安全 (Privacy & Security)
 
@@ -73,11 +73,11 @@ npx tsx src/login.ts
 
 1. 複製根目錄的 `MY_PROFILE.example.md`，重新命名為 `MY_PROFILE.md`。
 2. 填入你的求職偏好與地雷。
-3. 讓 AI 讀取 `AGENT.md`：
-   - **Antigravity**：將 `AGENT.md` 放進 `.agents/rules/`，或存成全域 Skill (`~/.gemini/config/skills/104-hunter/SKILL.md`)。
-   - **Cursor**：把 `AGENT.md` 內容貼進 `.cursorrules`。
+3. 讓 AI 讀取 `AGENTS.md`：
+   - **Antigravity**：將 `AGENTS.md` 放進 `.agents/rules/`，或存成全域 Skill (`~/.gemini/config/skills/104-hunter/SKILL.md`)。
+   - **Cursor**：把 `AGENTS.md` 內容貼進 `.cursorrules`。
    - **Claude Desktop**：貼進 System Prompt。
-   - **直接講**：「請閱讀專案內的 MY_PROFILE.md 與 AGENT.md 並按照流程幫我找工作」。
+   - **直接講**：「請閱讀專案內的 MY_PROFILE.md 與 AGENTS.md 並按照流程幫我找工作」。
 
 ---
 
@@ -89,8 +89,8 @@ npx tsx src/login.ts
 > 1. 跑 `git clone`、`npm install` 跟 `npm run build`。
 > 2. 請人類跑 `npx tsx src/login.ts` 並手動登入。
 > 3. 幫人類把 MCP 絕對路徑寫進設定檔。
-> 4. **讀取 [`AGENT.md`](./AGENT.md)** 了解操作劇本。
-> 5. 依據 `AGENT.md` 引導人類建立 `MY_PROFILE.md`。
+> 4. **讀取 [`AGENTS.md`](./AGENTS.md)** 了解操作劇本。
+> 5. 依據 `AGENTS.md` 引導人類建立 `MY_PROFILE.md`。
 
 ### 工具列表 (MCP Tools)
 
@@ -146,13 +146,14 @@ npx tsx src/login.ts
 │   └── tools/
 │       ├── search.ts     # job104_search
 │       ├── details.ts    # job104_get_details
+│       ├── letters.ts    # job104_get_cover_letters
 │       ├── apply.ts      # job104_prepare_application
 │       ├── company.ts    # job104_search_companies, job104_get_company_detail
 │       ├── save.ts       # job104_save_job, job104_save_company
 │       └── session.ts    # job104_check_session
 ├── build/                # npm run build 輸出
 ├── .chrome-profile/      # Cookie 儲存目錄 (不進 git)
-├── AGENT.md              # AI 操作劇本
+├── AGENTS.md             # AI 操作劇本
 ├── MY_PROFILE.example.md # 虛擬分身範本
 ├── package.json
 └── tsconfig.json

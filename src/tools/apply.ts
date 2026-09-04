@@ -19,89 +19,70 @@ export async function prepareApplication(args: ApplyArgs) {
     await page.goto(job_url, { waitUntil: 'domcontentloaded' });
     
     try {
-        // 等待「應徵」按鈕出現 (104 新版 UI 使用 div 而非 button)
+        // 先檢查是否已應徵過此職缺
+        const alreadyApplied = await page.locator('button:has-text("已應徵"), .apply-button__button:has-text("已應徵")').first().isVisible().catch(() => false);
+        if (alreadyApplied) {
+            return {
+                status: "already_applied",
+                message: "您先前已應徵過此職缺，無需重複應徵。"
+            };
+        }
+
+        // 等待「我要應徵」按鈕出現並點擊 (104 新版 UI 可能使用 div 或 button)
         const applyBtnLocator = page.locator('.apply-button__button, button:has-text("我要應徵"), button:has-text("應徵")').first();
         await applyBtnLocator.waitFor({ state: 'visible', timeout: 8000 });
         await applyBtnLocator.click();
 
         console.error(`[Apply] Clicked '我要應徵' button.`);
         
-        // 等待應徵視窗/分頁出現（104 可能新開分頁或彈出 modal）
+        // 等待應徵視窗跳出
         await new Promise(r => setTimeout(r, 2500));
 
         let selectedTemplate: string | null = null;
 
-        // 若有指定推薦信範本名稱，嘗試在下拉選單中切換
+        // 若有指定推薦信範本名稱，透過 Playwright 原生點擊切換
         if (template_title) {
             try {
-                selectedTemplate = await page.evaluate(async (targetTitle) => {
-                    // 尋找包含推薦信選項的 multiselect
-                    const wrappers = Array.from(document.querySelectorAll('.multiselect')) as HTMLElement[];
-                    const letterDropdown = wrappers.find(w => 
-                        w.textContent?.includes('推薦信') || 
-                        w.textContent?.includes('系統預設') ||
-                        w.textContent?.includes('自訂')
-                    );
-
-                    if (letterDropdown) {
-                        // 1. 點擊展開下拉選單
-                        letterDropdown.click();
-                        await new Promise(r => setTimeout(r, 400));
-
-                        // 2. 尋找目標選項
-                        const options = Array.from(letterDropdown.querySelectorAll('.multiselect__option')) as HTMLElement[];
-                        const matchOpt = options.find(opt => {
-                            const text = opt.textContent?.trim() || '';
-                            return text === targetTitle || text.includes(targetTitle);
-                        });
-
-                        if (matchOpt) {
-                            matchOpt.click();
-                            // 觸發 mouseup 與 click 確保 Vue 接收
-                            matchOpt.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-                            matchOpt.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-                            matchOpt.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-                            await new Promise(r => setTimeout(r, 400));
-                            return matchOpt.textContent?.trim() || targetTitle;
-                        } else {
-                            // 若沒匹配到，關閉選單
-                            letterDropdown.click();
-                        }
-                    }
-                    return null;
-                }, template_title);
-
-                if (selectedTemplate) {
-                    console.error(`[Apply] Successfully selected template: ${selectedTemplate}`);
+                const letterDropdown = page.locator('.multiselect').filter({ hasText: /推薦信|系統預設|自訂/ }).first();
+                if (await letterDropdown.isVisible({ timeout: 5000 }).catch(() => false)) {
+                    await letterDropdown.click();
                     await new Promise(r => setTimeout(r, 600));
+
+                    const targetOption = page.locator('.multiselect__option').filter({ hasText: template_title }).first();
+                    if (await targetOption.isVisible({ timeout: 3000 }).catch(() => false)) {
+                        selectedTemplate = (await targetOption.textContent())?.trim() || template_title;
+                        await targetOption.click();
+                        console.error(`[Apply] Successfully selected template: ${selectedTemplate}`);
+                        // 等待 104 前端非同步填入該範本內容
+                        await new Promise(r => setTimeout(r, 1200));
+                    } else {
+                        console.error(`[Apply] Option '${template_title}' not found in dropdown.`);
+                        await letterDropdown.click().catch(() => {});
+                    }
                 }
             } catch (e) {
                 console.error(`[Apply] Failed to select template '${template_title}':`, (e as Error).message);
             }
         }
 
-        // 嘗試填入自訂求職信（若有提供）
+        // 填入自訂推薦信內容（若有提供）
         let coverLetterFilled = false;
         if (cover_letter_text) {
             try {
-                coverLetterFilled = await page.evaluate((text) => {
-                    // 優先尋找非 chatbot 且可見的 textarea
-                    const textareas = Array.from(document.querySelectorAll('textarea')) as HTMLTextAreaElement[];
-                    const target = textareas.find(t => !t.className.includes('chatbot') && (t.offsetParent !== null || t.className.includes('form-control')));
-                    if (target) {
-                        target.value = text;
-                        // 觸發 input 與 change 事件以確保 Vue / React 雙向綁定更新
-                        target.dispatchEvent(new Event('input', { bubbles: true }));
-                        target.dispatchEvent(new Event('change', { bubbles: true }));
-                        return true;
-                    }
-                    return false;
-                }, cover_letter_text);
+                // 定位非 chatbot 的推薦信輸入框
+                const textareaLocator = page.locator('textarea.form-control, textarea:not([class*="chatbot"])').first();
+                await textareaLocator.waitFor({ state: 'visible', timeout: 5000 });
+                await textareaLocator.click();
+                // 使用 Playwright 原生 fill，會自動觸發完整的鍵盤與 Vue v-model 雙向綁定事件
+                await textareaLocator.fill(cover_letter_text);
+                await textareaLocator.dispatchEvent('input').catch(() => {});
+                await textareaLocator.dispatchEvent('change').catch(() => {});
 
-                if (coverLetterFilled) {
-                    console.error(`[Apply] Filled cover letter text successfully via DOM event dispatch.`);
-                } else {
-                    console.error(`[Apply] Target textarea not found for cover letter.`);
+                // 驗證是否成功填入
+                const currentVal = await textareaLocator.inputValue().catch(() => "");
+                if (currentVal.length > 0) {
+                    coverLetterFilled = true;
+                    console.error(`[Apply] Filled cover letter text successfully (${currentVal.length} chars).`);
                 }
             } catch (e) {
                 console.error(`[Apply] Could not fill cover letter textarea:`, (e as Error).message);
