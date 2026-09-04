@@ -34,23 +34,46 @@ export async function prepareApplication(args: ApplyArgs) {
         // 若有指定推薦信範本名稱，嘗試在下拉選單中切換
         if (template_title) {
             try {
-                selectedTemplate = await page.evaluate((targetTitle) => {
-                    const options = Array.from(document.querySelectorAll('.multiselect__option'));
-                    const matchOpt = options.find(opt => {
-                        const text = opt.textContent?.trim() || '';
-                        return text === targetTitle || text.includes(targetTitle);
-                    }) as HTMLElement | undefined;
+                selectedTemplate = await page.evaluate(async (targetTitle) => {
+                    // 尋找包含推薦信選項的 multiselect
+                    const wrappers = Array.from(document.querySelectorAll('.multiselect')) as HTMLElement[];
+                    const letterDropdown = wrappers.find(w => 
+                        w.textContent?.includes('推薦信') || 
+                        w.textContent?.includes('系統預設') ||
+                        w.textContent?.includes('自訂')
+                    );
 
-                    if (matchOpt) {
-                        matchOpt.click();
-                        return matchOpt.textContent?.trim() || targetTitle;
+                    if (letterDropdown) {
+                        // 1. 點擊展開下拉選單
+                        letterDropdown.click();
+                        await new Promise(r => setTimeout(r, 400));
+
+                        // 2. 尋找目標選項
+                        const options = Array.from(letterDropdown.querySelectorAll('.multiselect__option')) as HTMLElement[];
+                        const matchOpt = options.find(opt => {
+                            const text = opt.textContent?.trim() || '';
+                            return text === targetTitle || text.includes(targetTitle);
+                        });
+
+                        if (matchOpt) {
+                            matchOpt.click();
+                            // 觸發 mouseup 與 click 確保 Vue 接收
+                            matchOpt.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+                            matchOpt.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+                            matchOpt.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                            await new Promise(r => setTimeout(r, 400));
+                            return matchOpt.textContent?.trim() || targetTitle;
+                        } else {
+                            // 若沒匹配到，關閉選單
+                            letterDropdown.click();
+                        }
                     }
                     return null;
                 }, template_title);
 
                 if (selectedTemplate) {
                     console.error(`[Apply] Successfully selected template: ${selectedTemplate}`);
-                    await new Promise(r => setTimeout(r, 500));
+                    await new Promise(r => setTimeout(r, 600));
                 }
             } catch (e) {
                 console.error(`[Apply] Failed to select template '${template_title}':`, (e as Error).message);
