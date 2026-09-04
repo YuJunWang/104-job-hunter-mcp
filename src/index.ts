@@ -6,6 +6,7 @@ import { prepareApplication, ApplyArgsSchema } from "./tools/apply";
 import { checkSession, SessionArgsSchema } from "./tools/session";
 import { searchCompanies, SearchCompanyArgsSchema, getCompanyDetail, CompanyDetailArgsSchema } from "./tools/company";
 import { saveJob, SaveJobArgsSchema, saveCompany, SaveCompanyArgsSchema } from "./tools/save";
+import { getCoverLetters, LettersArgsSchema } from "./tools/letters";
 
 
 // 建立 MCP 伺服器實例
@@ -40,10 +41,23 @@ server.tool(
     }
 );
 
+// 註冊讀取自我推薦信範本工具
+server.tool(
+    "job104_get_cover_letters",
+    "讀取您 104 帳號中儲存的所有自我推薦信（Cover Letter）範本，包含範本名稱、內文與是否為預設。",
+    LettersArgsSchema.shape,
+    async (args) => {
+        const result = await getCoverLetters(args as any);
+        return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+        };
+    }
+);
+
 // 註冊準備投遞履歷工具
 server.tool(
     "job104_prepare_application",
-    "開啟應徵視窗並填入資訊。此工具僅作輔助，需人類最後確認送出。",
+    "開啟應徵視窗並填入資訊，支援選擇特定推薦信範本或覆蓋填入客製化推薦信。此工具僅作輔助，需人類最後確認送出。",
     ApplyArgsSchema.shape,
     async (args) => {
         const result = await prepareApplication(args as any);

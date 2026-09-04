@@ -4,15 +4,16 @@ import * as path from 'path';
 
 export const ApplyArgsSchema = z.object({
     job_url: z.string().url().describe("104 職缺頁面網址"),
-    cover_letter_text: z.string().optional().describe("自傳或給公司的求職信內容"),
+    template_title: z.string().optional().describe("選填。指定選用 104 帳號內的推薦信範本名稱（例如 '系統預設'、'自訂推薦信1' 等）。"),
+    cover_letter_text: z.string().optional().describe("選填。自傳或給公司的求職信內容。若提供則會填入並覆蓋推薦信文字框。"),
     dry_run: z.boolean().optional().default(false).describe("Dry run 模式：走完所有步驟但不點送出，並截圖回傳。預設為 false。")
 });
 
 export type ApplyArgs = z.infer<typeof ApplyArgsSchema>;
 
 export async function prepareApplication(args: ApplyArgs) {
-    const { job_url, cover_letter_text, dry_run = false } = args;
-    const page = await getBrowserPage(dry_run);
+    const { job_url, template_title, cover_letter_text, dry_run = false } = args;
+    const page = await getBrowserPage(false);
 
     console.error(`[Apply] Navigating to ${job_url} (dry_run=${dry_run})`);
     await page.goto(job_url, { waitUntil: 'domcontentloaded' });
@@ -26,20 +27,61 @@ export async function prepareApplication(args: ApplyArgs) {
         console.error(`[Apply] Clicked '我要應徵' button.`);
         
         // 等待應徵視窗/分頁出現（104 可能新開分頁或彈出 modal）
-        await new Promise(r => setTimeout(r, 2000));
+        await new Promise(r => setTimeout(r, 2500));
 
-        // 嘗試填入求職信
+        let selectedTemplate: string | null = null;
+
+        // 若有指定推薦信範本名稱，嘗試在下拉選單中切換
+        if (template_title) {
+            try {
+                selectedTemplate = await page.evaluate((targetTitle) => {
+                    const options = Array.from(document.querySelectorAll('.multiselect__option'));
+                    const matchOpt = options.find(opt => {
+                        const text = opt.textContent?.trim() || '';
+                        return text === targetTitle || text.includes(targetTitle);
+                    }) as HTMLElement | undefined;
+
+                    if (matchOpt) {
+                        matchOpt.click();
+                        return matchOpt.textContent?.trim() || targetTitle;
+                    }
+                    return null;
+                }, template_title);
+
+                if (selectedTemplate) {
+                    console.error(`[Apply] Successfully selected template: ${selectedTemplate}`);
+                    await new Promise(r => setTimeout(r, 500));
+                }
+            } catch (e) {
+                console.error(`[Apply] Failed to select template '${template_title}':`, (e as Error).message);
+            }
+        }
+
+        // 嘗試填入自訂求職信（若有提供）
         let coverLetterFilled = false;
         if (cover_letter_text) {
             try {
-                // 104 應徵視窗內通常只有一個主要的 textarea 作為自我推薦信
-                const textareaLocator = page.locator('textarea.form-control, textarea').first();
-                await textareaLocator.waitFor({ state: 'visible', timeout: 8000 });
-                await textareaLocator.fill(cover_letter_text);
-                coverLetterFilled = true;
-                console.error(`[Apply] Filled cover letter text.`);
+                coverLetterFilled = await page.evaluate((text) => {
+                    // 優先尋找非 chatbot 且可見的 textarea
+                    const textareas = Array.from(document.querySelectorAll('textarea')) as HTMLTextAreaElement[];
+                    const target = textareas.find(t => !t.className.includes('chatbot') && (t.offsetParent !== null || t.className.includes('form-control')));
+                    if (target) {
+                        target.value = text;
+                        // 觸發 input 與 change 事件以確保 Vue / React 雙向綁定更新
+                        target.dispatchEvent(new Event('input', { bubbles: true }));
+                        target.dispatchEvent(new Event('change', { bubbles: true }));
+                        return true;
+                    }
+                    return false;
+                }, cover_letter_text);
+
+                if (coverLetterFilled) {
+                    console.error(`[Apply] Filled cover letter text successfully via DOM event dispatch.`);
+                } else {
+                    console.error(`[Apply] Target textarea not found for cover letter.`);
+                }
             } catch (e) {
-                console.error(`[Apply] Could not fill cover letter textarea. May need manual paste. Error: ${(e as Error).message}`);
+                console.error(`[Apply] Could not fill cover letter textarea:`, (e as Error).message);
             }
         }
 
@@ -68,8 +110,9 @@ export async function prepareApplication(args: ApplyArgs) {
             message: dry_run
                 ? `【DRY RUN 完成】已模擬完整應徵流程，截圖已儲存。此模式下不會送出任何應徵。`
                 : `【Hit-in-the-loop】已點擊應徵按鈕並開啟投遞視窗。基於安全邊界，Agent 不會自動送出，請人類確認畫面後親自點擊最終送出按鈕！`,
+            selected_template: selectedTemplate || (template_title ? `未找到 '${template_title}'，維持預設` : '使用 104 預設範本'),
             cover_letter_filled: coverLetterFilled,
-            provided_cover_letter: cover_letter_text || "未提供",
+            provided_cover_letter: cover_letter_text || "使用範本內文（未覆蓋自訂文字）",
             screenshot_path: screenshotPath || null,
         };
         

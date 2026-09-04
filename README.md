@@ -107,10 +107,14 @@ npx tsx src/login.ts
 - **必填參數**：`job_url`
 - **功能**：獲取職位描述、條件要求與福利。草擬推薦信前必備。
 
+#### `job104_get_cover_letters`
+- **選填參數**：`job_url`
+- **功能**：讀取 104 帳號中儲存的所有自我推薦信（Cover Letter）範本，包含範本標題與完整內容。可作為 AI 客製化潤飾的基底。
+
 #### `job104_prepare_application` (Hit-in-the-loop)
 - **必填參數**：`job_url`
-- **選填參數**：`cover_letter_text`、`dry_run` (預設 false)
-- **注意**：只會開啟投遞確認頁。AI 執行後必須提醒人類：「請手動點擊確認送出」。
+- **選填參數**：`template_title` (指定使用之範本名稱)、`cover_letter_text` (自訂推薦信內容)、`dry_run` (預設 false)
+- **注意**：只會開啟投遞確認頁與代填推薦信。AI 執行後必須提醒人類：「請手動點擊確認送出」。
 
 #### `job104_search_companies`
 - **必填參數**：`keyword` (公司名稱)
