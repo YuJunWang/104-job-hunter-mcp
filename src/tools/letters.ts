@@ -48,19 +48,19 @@ export async function getCoverLetters(args: LettersArgs) {
 
         const templates: CoverLetterTemplate[] = [];
 
-        // 定位 multiselect（推薦信下拉選單），與 apply.ts 使用相同的選擇器
-        const letterDropdown = page.locator('.multiselect').filter({ hasText: /推薦信|系統預設|自訂/ }).first();
+        // 定位「自我推薦信」下拉選單容器
+        const letterDropdown = page.locator('.apply-msg .form-control, .apply-msg .text-region').first();
         const hasDropdown = await letterDropdown.isVisible({ timeout: 5000 }).catch(() => false);
 
-        // 定位 textarea（與 apply.ts 相同的選擇器）
-        const textareaLocator = page.locator('textarea.form-control, textarea:not([class*="chatbot"])').first();
+        // 精確定位應徵彈窗中可見的推薦信輸入框
+        const textareaLocator = page.locator('.apply-popup textarea, .apply-msg textarea, textarea.form-control:visible').first();
 
         if (hasDropdown) {
             // 先展開下拉選單以取得所有選項
             await letterDropdown.click();
             await page.waitForTimeout(600);
 
-            const optionLocators = page.locator('.multiselect__option');
+            const optionLocators = page.locator('.apply-msg .multiselect__option');
             const optionCount = await optionLocators.count();
             console.error(`[Letters] Found ${optionCount} template options.`);
 
@@ -69,7 +69,7 @@ export async function getCoverLetters(args: LettersArgs) {
                 const title = (await opt.textContent())?.trim() || `範本 ${i + 1}`;
 
                 // 若下拉選單已關閉（點選後自動收起），需重新展開
-                const isDropdownOpen = await page.locator('.multiselect__content').isVisible().catch(() => false);
+                const isDropdownOpen = await page.locator('.apply-msg .multiselect__content').isVisible().catch(() => false);
                 if (!isDropdownOpen) {
                     await letterDropdown.click();
                     await page.waitForTimeout(400);

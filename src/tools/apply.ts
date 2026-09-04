@@ -103,18 +103,19 @@ export async function prepareApplication(args: ApplyArgs) {
         // 若有指定推薦信範本名稱，透過 Playwright 原生點擊切換
         if (template_title) {
             try {
-                const letterDropdown = page.locator('.multiselect').filter({ hasText: /推薦信|系統預設|自訂/ }).first();
+                // 104 應徵視窗自我推薦信的容器為 .apply-msg，觸發下拉框為 .apply-msg .form-control
+                const letterDropdown = page.locator('.apply-msg .form-control, .apply-msg .text-region').first();
                 if (await letterDropdown.isVisible({ timeout: 5000 }).catch(() => false)) {
                     await letterDropdown.click();
-                    await new Promise(r => setTimeout(r, 600));
+                    await page.waitForTimeout(600);
 
-                    const targetOption = page.locator('.multiselect__option').filter({ hasText: template_title }).first();
+                    const targetOption = page.locator('.apply-msg .multiselect__option').filter({ hasText: template_title }).first();
                     if (await targetOption.isVisible({ timeout: 3000 }).catch(() => false)) {
                         selectedTemplate = (await targetOption.textContent())?.trim() || template_title;
                         await targetOption.click();
                         console.error(`[Apply] Successfully selected template: ${selectedTemplate}`);
                         // 等待 104 前端非同步填入該範本內容
-                        await new Promise(r => setTimeout(r, 1200));
+                        await page.waitForTimeout(1200);
                     } else {
                         console.error(`[Apply] Option '${template_title}' not found in dropdown.`);
                         await letterDropdown.click().catch(() => {});
@@ -129,8 +130,8 @@ export async function prepareApplication(args: ApplyArgs) {
         let coverLetterFilled = false;
         if (cover_letter_text) {
             try {
-                // 定位非 chatbot 的推薦信輸入框
-                const textareaLocator = page.locator('textarea.form-control, textarea:not([class*="chatbot"])').first();
+                // 精確定位應徵彈窗中可見的推薦信輸入框，避開頁面隱藏的非相關 textarea
+                const textareaLocator = page.locator('.apply-popup textarea, .apply-msg textarea, textarea.form-control:visible').first();
                 await textareaLocator.waitFor({ state: 'visible', timeout: 5000 });
                 await textareaLocator.click();
                 // 使用 Playwright 原生 fill，會自動觸發完整的鍵盤與 Vue v-model 雙向綁定事件
