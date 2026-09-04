@@ -6,7 +6,7 @@ export const SessionArgsSchema = z.object({});
 export type SessionArgs = z.infer<typeof SessionArgsSchema>;
 
 export async function checkSession(_args: SessionArgs) {
-    const page = await getBrowserPage();
+    const page = await getBrowserPage(true);
 
     console.error('[Session] Checking login status via 104 member dashboard...');
 

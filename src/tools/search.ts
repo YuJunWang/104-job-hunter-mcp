@@ -11,7 +11,7 @@ export type SearchArgs = z.infer<typeof SearchArgsSchema>;
 
 export async function searchJobs(args: SearchArgs) {
     const { keyword, page: pageNum } = args;
-    const browserPage = await getBrowserPage(false);
+    const browserPage = await getBrowserPage(true);
     
     // 建立 104 搜尋網址
     const url = new URL('https://www.104.com.tw/jobs/search/');
@@ -27,11 +27,16 @@ export async function searchJobs(args: SearchArgs) {
     console.error(`[Search] Navigating to ${url.toString()}`);
     
     // 用 Promise 監聽 104 的後端 JSON API，繞過所有 DOM 防爬蟲機制
+    // ⚠️ 使用命名函式 + off() 確保每次搜尋後清除監聽器，避免 EventEmitter 洩漏
     const apiDataPromise = new Promise<any>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('API 回應逾時（20秒）')), 20000);
-        
-        browserPage.on('response', async (response) => {
+        const timeout = setTimeout(() => {
+            browserPage.off('response', handler);
+            reject(new Error('API 回應逾時（20秒）'));
+        }, 20000);
+
+        const handler = async (response: any) => {
             if (response.url().includes('/jobs/search/api/jobs')) {
+                browserPage.off('response', handler);
                 clearTimeout(timeout);
                 try {
                     const json = await response.json();
@@ -40,7 +45,9 @@ export async function searchJobs(args: SearchArgs) {
                     reject(e);
                 }
             }
-        });
+        };
+
+        browserPage.on('response', handler);
     });
 
     await browserPage.goto(url.toString(), { waitUntil: 'domcontentloaded' });

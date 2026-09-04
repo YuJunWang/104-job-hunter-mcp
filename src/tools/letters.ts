@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { checkSession } from './session';
 
 export const LettersArgsSchema = z.object({
-    job_url: z.string().url().optional().describe("選填。可指定任一 104 職缺頁面以開啟應徵視窗讀取範本，若不填則預設使用常用職缺頁面。")
+    job_url: z.string().url().describe("必填。任一有效的 104 職缺頁面網址（用於開啟應徵視窗以讀取推薦信範本）。請提供確定存在的職缺連結，例如您目前想應徵的任一職缺 URL。")
 });
 
 export type LettersArgs = z.infer<typeof LettersArgsSchema>;
@@ -16,8 +16,11 @@ export interface CoverLetterTemplate {
 
 /**
  * 取得使用者 104 帳號中儲存的所有自我推薦信範本（包含標題與完整內容）
+ *
+ * 使用 Playwright 原生 locator 操作，確保 Vue v-model 事件序列被正確觸發。
+ * job_url 為必填，因為需要透過真實職缺的應徵視窗讀取推薦信選單。
  */
-export async function getCoverLetters(args: LettersArgs = {}) {
+export async function getCoverLetters(args: LettersArgs) {
     const sessionStatus = await checkSession({});
     if (!sessionStatus.logged_in) {
         return {
@@ -25,9 +28,9 @@ export async function getCoverLetters(args: LettersArgs = {}) {
         };
     }
 
+    // ⚠️ 必須由 caller 提供有效職缺 URL，避免硬編碼 URL 失效問題
     const page = await getBrowserPage(false);
-    // 預設一個公開職缺作為開啟應徵 Modal 的媒介
-    const targetJobUrl = args.job_url || 'https://www.104.com.tw/job/94nxm';
+    const targetJobUrl = args.job_url;
 
     console.error(`[Letters] Navigating to job page: ${targetJobUrl} to access cover letters...`);
 
@@ -35,7 +38,7 @@ export async function getCoverLetters(args: LettersArgs = {}) {
         await page.goto(targetJobUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
         await page.waitForTimeout(2000);
 
-        // 點擊「我要應徵」按鈕開啟 Modal
+        // 點擊「我要應徵」按鈕開啟 Modal（與 apply.ts 相同的選擇器）
         const applyBtnLocator = page.locator('.apply-button__button, button:has-text("我要應徵"), button:has-text("應徵")').first();
         await applyBtnLocator.waitFor({ state: 'visible', timeout: 8000 });
         await applyBtnLocator.click();
@@ -43,59 +46,61 @@ export async function getCoverLetters(args: LettersArgs = {}) {
         // 等待應徵彈窗完全載入
         await page.waitForTimeout(2500);
 
-        const templates = await page.evaluate(async () => {
-            const list: CoverLetterTemplate[] = [];
-            const textarea = document.querySelector('textarea.form-control, textarea') as HTMLTextAreaElement;
+        const templates: CoverLetterTemplate[] = [];
 
-            // 尋找包含推薦信選項的 multiselect 元件
-            const optionElements = Array.from(document.querySelectorAll('.multiselect__option'));
-            const letterOption = optionElements.find(el => {
-                const text = el.textContent?.trim() || '';
-                return text.includes('推薦信') || text.includes('系統預設');
-            });
+        // 定位 multiselect（推薦信下拉選單），與 apply.ts 使用相同的選擇器
+        const letterDropdown = page.locator('.multiselect').filter({ hasText: /推薦信|系統預設|自訂/ }).first();
+        const hasDropdown = await letterDropdown.isVisible({ timeout: 5000 }).catch(() => false);
 
-            if (letterOption) {
-                const multiselectWrapper = letterOption.closest('.multiselect') || letterOption.closest('[class*="select"]');
-                if (multiselectWrapper) {
-                    // 取得該選單下的所有選項
-                    const options = Array.from(multiselectWrapper.querySelectorAll('.multiselect__option')) as HTMLElement[];
-                    
-                    for (let i = 0; i < options.length; i++) {
-                        const opt = options[i];
-                        const title = opt.textContent?.trim() || `範本 ${i + 1}`;
-                        
-                        // 點擊切換
-                        opt.click();
-                        await new Promise(r => setTimeout(r, 400));
+        // 定位 textarea（與 apply.ts 相同的選擇器）
+        const textareaLocator = page.locator('textarea.form-control, textarea:not([class*="chatbot"])').first();
 
-                        const currentVal = textarea ? textarea.value : '';
-                        list.push({
-                            title,
-                            content: currentVal,
-                            isDefault: i === 0 || title.includes('預設')
-                        });
-                    }
+        if (hasDropdown) {
+            // 先展開下拉選單以取得所有選項
+            await letterDropdown.click();
+            await page.waitForTimeout(600);
+
+            const optionLocators = page.locator('.multiselect__option');
+            const optionCount = await optionLocators.count();
+            console.error(`[Letters] Found ${optionCount} template options.`);
+
+            for (let i = 0; i < optionCount; i++) {
+                const opt = optionLocators.nth(i);
+                const title = (await opt.textContent())?.trim() || `範本 ${i + 1}`;
+
+                // 若下拉選單已關閉（點選後自動收起），需重新展開
+                const isDropdownOpen = await page.locator('.multiselect__content').isVisible().catch(() => false);
+                if (!isDropdownOpen) {
+                    await letterDropdown.click();
+                    await page.waitForTimeout(400);
                 }
-            }
 
-            // 如果找不到特定 dropdown，至少回傳當前 textarea 中的預設內容
-            if (list.length === 0 && textarea && textarea.value) {
-                list.push({
-                    title: '系統預設推薦信',
-                    content: textarea.value,
-                    isDefault: true
+                // Playwright 原生 click，觸發 Vue 響應式事件序列（keydown/input/change）
+                await opt.click();
+                // 等待 104 前端非同步更新 textarea 內容
+                await page.waitForTimeout(1000);
+
+                const content = await textareaLocator.inputValue().catch(() => '');
+                templates.push({
+                    title,
+                    content,
+                    isDefault: i === 0 || title.includes('預設')
                 });
+
+                console.error(`[Letters] Read template "${title}" (${content.length} chars)`);
             }
+        } else {
+            // 找不到下拉選單，至少回傳當前 textarea 內容作為預設
+            console.error('[Letters] Multiselect not found, falling back to textarea value.');
+            const content = await textareaLocator.inputValue().catch(() => '');
+            if (content) {
+                templates.push({ title: '系統預設推薦信', content, isDefault: true });
+            }
+        }
 
-            return list;
-        });
-
-        // 關閉或重新整理當前頁面以復原狀態
-        await page.evaluate(() => {
-            // 點擊關閉 modal 按鈕（若有）
-            const closeBtn = document.querySelector('.modal-close, [class*="close"], .btn-close') as HTMLElement;
-            if (closeBtn) closeBtn.click();
-        });
+        // R4：用 Escape 鍵關閉 Modal，比 DOM evaluate click 更可靠
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(500);
 
         return {
             status: 'success',

@@ -9,7 +9,7 @@ export const DetailsArgsSchema = z.object({
 export type DetailsArgs = z.infer<typeof DetailsArgsSchema>;
 
 export async function getJobDetails(args: DetailsArgs) {
-    const browserPage = await getBrowserPage();
+    const browserPage = await getBrowserPage(true);
     const { job_url } = args;
 
     const jobId = extractJobId(job_url);
@@ -21,12 +21,17 @@ export async function getJobDetails(args: DetailsArgs) {
     console.error(`[Details] Navigating to ${job_url} (jobId: ${jobId})`);
 
     // 用 Promise 攔截 104 後端的 Job Detail API
+    // ⚠️ 使用命名函式 + off() 確保呼叫後清除監聽器，避免 EventEmitter 洩漏
     const apiDataPromise = new Promise<any>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('詳情 API 回應逾時（15秒）')), 15000);
+        const timeout = setTimeout(() => {
+            browserPage.off('response', handler);
+            reject(new Error('詳情 API 回應逾時（15秒）'));
+        }, 15000);
 
-        browserPage.on('response', async (response) => {
+        const handler = async (response: any) => {
             // 精確比對 /api/jobs/{jobId} 的 endpoint
             if (response.url().match(new RegExp(`/api/jobs/${jobId}$`))) {
+                browserPage.off('response', handler);
                 clearTimeout(timeout);
                 try {
                     const json = await response.json();
@@ -35,7 +40,9 @@ export async function getJobDetails(args: DetailsArgs) {
                     reject(e);
                 }
             }
-        });
+        };
+
+        browserPage.on('response', handler);
     });
 
     await browserPage.goto(job_url, { waitUntil: 'domcontentloaded' });
