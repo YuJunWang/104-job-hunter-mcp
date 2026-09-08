@@ -13,7 +13,7 @@ import { closeBrowser } from "./browser";
 // 建立 MCP 伺服器實例
 const server = new McpServer({
     name: "104-job-hunter",
-    version: "1.1.2",
+    version: "1.1.3",
 });
 
 // 註冊搜尋工具

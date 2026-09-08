@@ -132,6 +132,9 @@ npx tsx src/login.ts
 - **必填參數**：`companyInput` (代碼或網址)
 - **功能**：追蹤公司。
 
+#### `job104_reload_server`
+- **功能**：優雅重啟 MCP 伺服器以載入新編譯的代碼，避免進程鎖死或 stdio 管道中斷。
+
 ---
 
 ## 📁 專案結構
@@ -142,7 +145,10 @@ npx tsx src/login.ts
 │   ├── index.ts          # MCP 主程式，工具註冊入口
 │   ├── browser.ts        # Playwright 瀏覽器單例管理 (含 Stealth Plugin)
 │   ├── login.ts          # 登入輔助腳本
-│   ├── test-client.ts    # 本地測試客戶端
+│   ├── utils/
+│   │   └── url.ts        # 職缺/公司 URL 與代碼解析模組
+│   ├── __tests__/
+│   │   └── url.test.ts   # URL 單元測試
 │   └── tools/
 │       ├── search.ts     # job104_search
 │       ├── details.ts    # job104_get_details
@@ -151,7 +157,9 @@ npx tsx src/login.ts
 │       ├── company.ts    # job104_search_companies, job104_get_company_detail
 │       ├── save.ts       # job104_save_job, job104_save_company
 │       └── session.ts    # job104_check_session
-├── build/                # npm run build 輸出
+├── examples/
+│   └── client.ts         # 本地測試客戶端範例
+├── build/                # npm run build 輸出 (不進 git)
 ├── .chrome-profile/      # Cookie 儲存目錄 (不進 git)
 ├── AGENTS.md             # AI 操作劇本
 ├── MY_PROFILE.example.md # 虛擬分身範本
