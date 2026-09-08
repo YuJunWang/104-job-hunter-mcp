@@ -17,7 +17,6 @@ export async function getJobDetails(args: DetailsArgs) {
         return { error: '無效的 104 職缺 URL 格式，應為 https://www.104.com.tw/job/xxxxx' };
     }
 
-
     console.error(`[Details] Navigating to ${job_url} (jobId: ${jobId})`);
 
     // 用 Promise 攔截 104 後端的 Job Detail API
@@ -29,8 +28,8 @@ export async function getJobDetails(args: DetailsArgs) {
         }, 15000);
 
         const handler = async (response: any) => {
-            // 比對 104 的 job detail API (支援 /job/ajax/content/{jobId} 與 /api/jobs/{jobId})
-            if (response.url().includes(`/job/ajax/content/${jobId}`) || response.url().match(new RegExp(`/api/jobs/${jobId}($|\\?)`))) {
+            const respUrl = response.url();
+            if (respUrl.includes(`/job/ajax/content/${jobId}`) || respUrl.includes(`/api/jobs/${jobId}`)) {
                 browserPage.off('response', handler);
                 clearTimeout(timeout);
                 try {
@@ -45,13 +44,47 @@ export async function getJobDetails(args: DetailsArgs) {
         browserPage.on('response', handler);
     });
 
-
+    await browserPage.keyboard.press('Escape').catch(() => {});
     await browserPage.goto(job_url, { waitUntil: 'domcontentloaded' });
 
     let apiData: any;
     try {
         apiData = await apiDataPromise;
     } catch (e) {
+        console.error(`[Details] API interception timed out (${(e as Error).message}), attempting DOM parsing fallback...`);
+        try {
+            // 從已載入的頁面 DOM 提取職缺內容作為保底
+            await browserPage.waitForSelector('.job-header__title, h1', { timeout: 5000 }).catch(() => {});
+            const title = await browserPage.locator('.job-header__title, h1').first().textContent().catch(() => '') || '';
+            const company = await browserPage.locator('.job-header__company a, .company-name').first().textContent().catch(() => '') || '';
+            const description = await browserPage.locator('.job-description__content, .job-detail-description').first().textContent().catch(() => '') || '';
+            const salary = await browserPage.locator('.job-header__salary, .salary').first().textContent().catch(() => '') || '待遇面議';
+            
+            if (title) {
+                return {
+                    title: title.trim(),
+                    company: company.trim(),
+                    companyUrl: '',
+                    isApplied: false,
+                    description: description.trim(),
+                    jobCategory: '',
+                    workPlace: '',
+                    salary: salary.trim(),
+                    workPeriod: '',
+                    workType: '',
+                    edu: '',
+                    workExp: '',
+                    skills: [],
+                    languages: [],
+                    welfare: '',
+                    tags: [],
+                    hrName: '',
+                    replyTime: ''
+                };
+            }
+        } catch (domErr) {
+            console.error('[Details] DOM parsing fallback failed:', domErr);
+        }
         return { error: `無法取得職缺詳情：${(e as Error).message}` };
     }
 

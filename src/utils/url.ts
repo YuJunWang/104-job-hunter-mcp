@@ -15,7 +15,7 @@ export function extractJobId(input: string): string | null {
     }
 
     // 格式 2: 直接是 Job ID (一般為 5-6 位英數字)
-    const rawIdMatch = input.match(/^[a-z0-9]+$/i);
+    const rawIdMatch = input.match(/^[a-z0-9]{4,15}$/i);
     if (rawIdMatch) {
         return input;
     }
@@ -40,7 +40,7 @@ export function extractCompanyId(input: string): string | null {
     }
 
     // 格式 2: 直接是 Company ID
-    const rawIdMatch = input.match(/^[a-z0-9]+$/i);
+    const rawIdMatch = input.match(/^[a-z0-9]{4,15}$/i);
     if (rawIdMatch) {
         return input;
     }

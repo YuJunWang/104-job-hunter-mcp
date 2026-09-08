@@ -24,7 +24,9 @@ export async function searchCompanies(args: SearchCompanyArgs) {
     
     const response = await page.request.get(url, {
         headers: {
-            'Referer': 'https://www.104.com.tw/company/search/'
+            'Referer': 'https://www.104.com.tw/company/search/',
+            'Accept': 'application/json, text/plain, */*',
+            'X-Requested-With': 'XMLHttpRequest'
         }
     });
 
@@ -73,7 +75,11 @@ export async function getCompanyDetail(args: CompanyDetailArgs) {
     console.error(`[Company Detail] Fetching info for: ${companyCode}`);
     
     const detailResponse = await page.request.get(detailUrl, {
-        headers: { 'Referer': referer }
+        headers: {
+            'Referer': referer,
+            'Accept': 'application/json, text/plain, */*',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
     });
 
     if (!detailResponse.ok()) {
@@ -89,7 +95,11 @@ export async function getCompanyDetail(args: CompanyDetailArgs) {
     
     try {
         const jobsResponse = await page.request.get(jobsUrl, {
-            headers: { 'Referer': referer }
+            headers: {
+                'Referer': referer,
+                'Accept': 'application/json, text/plain, */*',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         });
         if (jobsResponse.ok()) {
             const jobsResult = await jobsResponse.json();

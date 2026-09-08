@@ -6,9 +6,9 @@ export const SessionArgsSchema = z.object({});
 export type SessionArgs = z.infer<typeof SessionArgsSchema>;
 
 export async function checkSession(_args: SessionArgs) {
-    const page = await getBrowserPage(true);
+    const page = await getBrowserPage(false);
 
-    console.error('[Session] Checking login status via 104 member dashboard...');
+    console.error('[Session] Checking login status via 104 member dashboard (headful window)...');
 
     try {
         await page.goto('https://pda.104.com.tw/my104', {

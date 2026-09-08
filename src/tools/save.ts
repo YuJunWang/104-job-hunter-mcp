@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { getBrowserPage } from '../browser';
 import { extractJobId, extractCompanyId } from '../utils/url';
-import { checkSession } from './session';
 
 export const SaveJobArgsSchema = z.object({
     jobInput: z.string().describe("職缺代碼或是職缺網址。例如 '796uv' 或 'https://www.104.com.tw/job/796uv'")
@@ -15,12 +14,6 @@ export async function saveJob(args: SaveJobArgs) {
         throw new Error("無法解析職缺代碼，請確認輸入是否為正確的 104 職缺網址或代碼。");
     }
 
-    // 先確認是否有登入
-    const sessionStatus = await checkSession({});
-    if (!sessionStatus.logged_in) {
-        throw new Error("尚未登入 104 帳號，請先執行登入流程才能使用收藏功能。");
-    }
-
     const page = await getBrowserPage(true);
     const url = `https://www.104.com.tw/job/ajax/save/${jobCode}`;
     const referer = `https://www.104.com.tw/job/${jobCode}`;
@@ -28,8 +21,16 @@ export async function saveJob(args: SaveJobArgs) {
     console.error(`[Save Job] POST to: ${url}`);
 
     const response = await page.request.post(url, {
-        headers: { 'Referer': referer }
+        headers: {
+            'Referer': referer,
+            'Accept': 'application/json, text/plain, */*',
+            'X-Requested-With': 'XMLHttpRequest',
+        }
     });
+
+    if (response.status() === 401 || response.status() === 403) {
+        throw new Error("尚未登入 104 帳號，請先執行 `npx tsx src/login.ts` 登入後才能使用收藏功能。");
+    }
 
     if (!response.ok()) {
         const text = await response.text().catch(() => "");
@@ -56,12 +57,6 @@ export async function saveCompany(args: SaveCompanyArgs) {
         throw new Error("無法解析公司代碼，請確認輸入是否為正確的 104 公司網址或代碼。");
     }
 
-    // 先確認是否有登入
-    const sessionStatus = await checkSession({});
-    if (!sessionStatus.logged_in) {
-        throw new Error("尚未登入 104 帳號，請先執行登入流程才能使用追蹤功能。");
-    }
-
     const page = await getBrowserPage(true);
     const url = `https://www.104.com.tw/api/companies/${companyCode}/follow`;
     const referer = `https://www.104.com.tw/company/${companyCode}`;
@@ -69,8 +64,16 @@ export async function saveCompany(args: SaveCompanyArgs) {
     console.error(`[Save Company] POST to: ${url}`);
 
     const response = await page.request.post(url, {
-        headers: { 'Referer': referer }
+        headers: {
+            'Referer': referer,
+            'Accept': 'application/json, text/plain, */*',
+            'X-Requested-With': 'XMLHttpRequest',
+        }
     });
+
+    if (response.status() === 401 || response.status() === 403) {
+        throw new Error("尚未登入 104 帳號，請先執行 `npx tsx src/login.ts` 登入後才能使用追蹤功能。");
+    }
 
     if (!response.ok()) {
         const text = await response.text().catch(() => "");

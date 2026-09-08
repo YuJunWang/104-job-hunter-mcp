@@ -7,6 +7,7 @@ import { checkSession, SessionArgsSchema } from "./tools/session";
 import { searchCompanies, SearchCompanyArgsSchema, getCompanyDetail, CompanyDetailArgsSchema } from "./tools/company";
 import { saveJob, SaveJobArgsSchema, saveCompany, SaveCompanyArgsSchema } from "./tools/save";
 import { getCoverLetters, LettersArgsSchema } from "./tools/letters";
+import { closeBrowser } from "./browser";
 
 
 // 建立 MCP 伺服器實例
@@ -128,6 +129,24 @@ server.tool(
         const result = await saveCompany(args as any);
         return {
             content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+        };
+    }
+);
+
+// 註冊優雅重啟工具（供開發或更新時熱重載）
+server.tool(
+    "job104_reload_server",
+    "優雅重新啟動 MCP 伺服器以載入新編譯的代碼，不中斷 stdio 管道。",
+    {},
+    async () => {
+        setTimeout(async () => {
+            try {
+                await closeBrowser();
+            } catch {}
+            process.exit(0);
+        }, 100);
+        return {
+            content: [{ type: "text", text: "✅ 伺服器已發送優雅關閉信號 (exit code 0)，Antigravity 將在下一次呼叫時自動載入最新代碼。" }]
         };
     }
 );

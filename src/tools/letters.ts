@@ -1,6 +1,5 @@
 import { getBrowserPage } from '../browser';
 import { z } from 'zod';
-import { checkSession } from './session';
 
 export const LettersArgsSchema = z.object({
     job_url: z.string().url().describe("必填。任一有效的 104 職缺頁面網址（用於開啟應徵視窗以讀取推薦信範本）。請提供確定存在的職缺連結，例如您目前想應徵的任一職缺 URL。")
@@ -21,13 +20,6 @@ export interface CoverLetterTemplate {
  * job_url 為必填，因為需要透過真實職缺的應徵視窗讀取推薦信選單。
  */
 export async function getCoverLetters(args: LettersArgs) {
-    const sessionStatus = await checkSession({});
-    if (!sessionStatus.logged_in) {
-        return {
-            error: "尚未登入 104 帳號，請先執行 `npx tsx src/login.ts` 登入後再讀取推薦信範本。"
-        };
-    }
-
     // ⚠️ 必須由 caller 提供有效職缺 URL，避免硬編碼 URL 失效問題
     const page = await getBrowserPage(false);
     const targetJobUrl = args.job_url;
@@ -37,6 +29,14 @@ export async function getCoverLetters(args: LettersArgs) {
     try {
         await page.goto(targetJobUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
         await page.waitForTimeout(2000);
+
+        // 登入狀態檢查：若未登入會被導向登入頁
+        const currentUrl = page.url();
+        if (currentUrl.includes('login.104.com.tw') || currentUrl.includes('/login')) {
+            return {
+                error: "尚未登入 104 帳號，請先執行 `npx tsx src/login.ts` 登入後再讀取推薦信範本。"
+            };
+        }
 
         // 點擊「我要應徵」按鈕開啟 Modal（與 apply.ts 相同的選擇器）
         const applyBtnLocator = page.locator('.apply-button__button, button:has-text("我要應徵"), button:has-text("應徵")').first();
@@ -56,7 +56,7 @@ export async function getCoverLetters(args: LettersArgs) {
         const textareaLocator = page.locator('.apply-popup textarea, .apply-msg textarea, textarea.form-control:visible').first();
 
         if (hasDropdown) {
-            // 先展開下拉選單以取得所有選項
+            // 先展開下拉選單以取得所有選項標題
             await letterDropdown.click();
             await page.waitForTimeout(600);
 
@@ -64,30 +64,42 @@ export async function getCoverLetters(args: LettersArgs) {
             const optionCount = await optionLocators.count();
             console.error(`[Letters] Found ${optionCount} template options.`);
 
+            const titles: string[] = [];
             for (let i = 0; i < optionCount; i++) {
-                const opt = optionLocators.nth(i);
-                const title = (await opt.textContent())?.trim() || `範本 ${i + 1}`;
+                const optText = (await optionLocators.nth(i).textContent())?.trim();
+                if (optText) {
+                    titles.push(optText);
+                }
+            }
 
-                // 若下拉選單已關閉（點選後自動收起），需重新展開
+            // 關閉下拉選單以重置狀態
+            await page.keyboard.press('Escape').catch(() => {});
+            await page.waitForTimeout(300);
+
+            for (const title of titles) {
+                // 若下拉選單已收起，重新展開
                 const isDropdownOpen = await page.locator('.apply-msg .multiselect__content').isVisible().catch(() => false);
                 if (!isDropdownOpen) {
                     await letterDropdown.click();
                     await page.waitForTimeout(400);
                 }
 
-                // Playwright 原生 click，觸發 Vue 響應式事件序列（keydown/input/change）
-                await opt.click();
-                // 等待 104 前端非同步更新 textarea 內容
-                await page.waitForTimeout(1000);
+                // 依據標題文字精確定位選項，避免 DOM re-render 後 index 錯位
+                const targetOpt = page.locator('.apply-msg .multiselect__option').filter({ hasText: title }).first();
+                if (await targetOpt.isVisible().catch(() => false)) {
+                    await targetOpt.click();
+                    // 等待 104 前端非同步更新 textarea 內容
+                    await page.waitForTimeout(1000);
 
-                const content = await textareaLocator.inputValue().catch(() => '');
-                templates.push({
-                    title,
-                    content,
-                    isDefault: i === 0 || title.includes('預設')
-                });
+                    const content = await textareaLocator.inputValue().catch(() => '');
+                    templates.push({
+                        title,
+                        content,
+                        isDefault: title.includes('預設') || templates.length === 0
+                    });
 
-                console.error(`[Letters] Read template "${title}" (${content.length} chars)`);
+                    console.error(`[Letters] Read template "${title}" (${content.length} chars)`);
+                }
             }
         } else {
             // 找不到下拉選單，至少回傳當前 textarea 內容作為預設

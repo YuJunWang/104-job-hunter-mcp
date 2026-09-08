@@ -155,7 +155,7 @@ export async function prepareApplication(args: ApplyArgs) {
         // dry_run 模式：截圖後直接回傳，不做任何額外操作
         let screenshotPath: string | undefined;
         if (dry_run) {
-            const screenshotDir = path.join(process.cwd(), '.screenshots');
+            const screenshotDir = path.resolve(__dirname, '../../.screenshots');
             const timestamp = Date.now();
             screenshotPath = path.join(screenshotDir, `apply_dry_run_${timestamp}.png`);
             
