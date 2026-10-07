@@ -2,6 +2,8 @@
 
 > 透過 MCP (Model Context Protocol) 讓 AI 直接操作 104 人力銀行。實現搜尋、比對、投遞自動化。
 > **🤖 進階應用**：利用 `AGENTS.md` 啟動詢答，從現有履歷直接建立「求職者虛擬分身」(`MY_PROFILE.md`)，精準鎖定職缺。
+>
+> 🎯 **實戰證明**：**「我真的使用這個工具準確獲得面試機會、成為 AI 相關的工程師了！」** 證明本專案設計的流程真實有效，能切實幫助求職者找到合適工作。
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![Playwright](https://img.shields.io/badge/Playwright-1.62-45BA4B?logo=playwright)](https://playwright.dev/)
