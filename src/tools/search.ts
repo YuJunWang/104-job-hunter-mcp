@@ -1,5 +1,6 @@
 import { getBrowserPage } from '../browser';
 import { z } from 'zod';
+import { resolveAreaCodes, SUPPORTED_AREAS } from '../utils/area';
 
 export const SearchArgsSchema = z.object({
     keyword: z.string().describe("職缺關鍵字，例如 '前端工程師' 或 'Node.js'"),
@@ -10,13 +11,23 @@ export const SearchArgsSchema = z.object({
 export type SearchArgs = z.infer<typeof SearchArgsSchema>;
 
 export async function searchJobs(args: SearchArgs) {
-    const { keyword, page: pageNum } = args;
+    const { keyword, location, page: pageNum } = args;
+
+    // 104 的 area 參數只吃代碼；地名辨識失敗時要讓 AI 知道，避免它以為結果已過濾
+    const area = location ? resolveAreaCodes(location) : null;
+    if (area && !area.codes) {
+        return {
+            error: `無法辨識地點「${location}」。支援的縣市：${SUPPORTED_AREAS.join('、')}`,
+        };
+    }
+
     const browserPage = await getBrowserPage(false);
     
     // 建立 104 搜尋網址
     const url = new URL('https://www.104.com.tw/jobs/search/');
     url.searchParams.set('ro', '0');
     url.searchParams.set('keyword', keyword);
+    if (area?.codes) url.searchParams.set('area', area.codes);
     url.searchParams.set('expansionType', 'area,spec,com,job,wf,wktm');
     url.searchParams.set('order', '15');
     url.searchParams.set('asc', '0');
@@ -78,6 +89,8 @@ export async function searchJobs(args: SearchArgs) {
 
     return {
         keyword,
+        ...(location ? { location } : {}),
+        ...(area?.unknown.length ? { warning: `已忽略無法辨識的地點：${area.unknown.join('、')}` } : {}),
         page: pageNum,
         total: apiData.metadata?.total || jobs.length,
         results: jobs

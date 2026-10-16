@@ -7,13 +7,13 @@ import { checkSession, SessionArgsSchema } from "./tools/session";
 import { searchCompanies, SearchCompanyArgsSchema, getCompanyDetail, CompanyDetailArgsSchema } from "./tools/company";
 import { saveJob, SaveJobArgsSchema, saveCompany, SaveCompanyArgsSchema } from "./tools/save";
 import { getCoverLetters, LettersArgsSchema } from "./tools/letters";
-import { closeBrowser } from "./browser";
+import { closeBrowser, runExclusive } from "./browser";
 
 
 // 建立 MCP 伺服器實例
 const server = new McpServer({
     name: "104-job-hunter",
-    version: "1.1.3",
+    version: "1.1.4",
 });
 
 // 註冊搜尋工具
@@ -22,7 +22,7 @@ server.tool(
     "搜尋 104 人力銀行的職缺",
     SearchArgsSchema.shape,
     async (args) => {
-        const result = await searchJobs(args as any);
+        const result = await runExclusive(() => searchJobs(args as any));
         return {
             content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
         };
@@ -35,7 +35,7 @@ server.tool(
     "取得單一職缺的詳細內容與條件要求",
     DetailsArgsSchema.shape,
     async (args) => {
-        const result = await getJobDetails(args as any);
+        const result = await runExclusive(() => getJobDetails(args as any));
         return {
             content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
         };
@@ -48,7 +48,7 @@ server.tool(
     "讀取您 104 帳號中儲存的所有自我推薦信（Cover Letter）範本，包含範本名稱、內文與是否為預設。",
     LettersArgsSchema.shape,
     async (args) => {
-        const result = await getCoverLetters(args as any);
+        const result = await runExclusive(() => getCoverLetters(args as any));
         return {
             content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
         };
@@ -61,7 +61,7 @@ server.tool(
     "開啟應徵視窗並填入資訊，支援選擇特定推薦信範本或覆蓋填入客製化推薦信。此工具僅作輔助，需人類最後確認送出。",
     ApplyArgsSchema.shape,
     async (args) => {
-        const result = await prepareApplication(args as any);
+        const result = await runExclusive(() => prepareApplication(args as any));
         return {
             content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
         };
@@ -74,7 +74,7 @@ server.tool(
     "檢查 104 人力銀行的登入狀態。在開始求職流程前，可呼叫此工具確認 Cookie 是否仍有效，避免在最後投遞時才發現未登入。",
     SessionArgsSchema.shape,
     async (args) => {
-        const result = await checkSession(args as any);
+        const result = await runExclusive(() => checkSession(args as any));
         return {
             content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
         };
@@ -87,7 +87,7 @@ server.tool(
     "搜尋 104 人力銀行上的公司資訊，可根據公司名稱關鍵字搜尋，回傳包含產業別、地點、現有職缺數量等資訊。",
     SearchCompanyArgsSchema.shape,
     async (args) => {
-        const result = await searchCompanies(args as any);
+        const result = await runExclusive(() => searchCompanies(args as any));
         return {
             content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
         };
@@ -100,7 +100,7 @@ server.tool(
     "取得單一公司的詳細內容，包含公司簡介、福利制度、聯絡人資訊，並預設一併回傳該公司的開放職缺列表。",
     CompanyDetailArgsSchema.shape,
     async (args) => {
-        const result = await getCompanyDetail(args as any);
+        const result = await runExclusive(() => getCompanyDetail(args as any));
         return {
             content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
         };
@@ -113,7 +113,7 @@ server.tool(
     "將指定的職缺代碼加入您 104 帳號的「我的收藏」中。此工具會直接執行寫入操作，需先確認已登入。",
     SaveJobArgsSchema.shape,
     async (args) => {
-        const result = await saveJob(args as any);
+        const result = await runExclusive(() => saveJob(args as any));
         return {
             content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
         };
@@ -126,7 +126,7 @@ server.tool(
     "將指定的公司代碼加入您 104 帳號的追蹤名單中。此工具會直接執行寫入操作，需先確認已登入。",
     SaveCompanyArgsSchema.shape,
     async (args) => {
-        const result = await saveCompany(args as any);
+        const result = await runExclusive(() => saveCompany(args as any));
         return {
             content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
         };

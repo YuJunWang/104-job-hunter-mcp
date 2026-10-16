@@ -1,5 +1,6 @@
 import { getBrowserPage } from '../browser';
 import { z } from 'zod';
+import { isLoginUrl } from '../utils/url';
 
 export const SessionArgsSchema = z.object({});
 
@@ -16,12 +17,15 @@ export async function checkSession(_args: SessionArgs) {
             timeout: 15000
         });
 
-        // 等待網頁導向穩定（104 有時會有多次 redirect）
-        await page.waitForTimeout(2000);
+        // 104 會經 signin.104.com.tw 做 SSO 跳轉：已登入者會自動被送回 pda，未登入者停在 signin。
+        // 等到「落地在會員中心」為止；逾時代表停在登入頁（或網路異常），交給下方判斷。
+        await page.waitForURL(
+            u => u.hostname === 'pda.104.com.tw' && !isLoginUrl(u.toString()),
+            { timeout: 10000 }
+        ).catch(() => {});
 
         const currentUrl = page.url();
-        const isLoggedIn = !currentUrl.includes('login.104.com.tw') &&
-                           !currentUrl.includes('pda.104.com.tw/login');
+        const isLoggedIn = !isLoginUrl(currentUrl) && new URL(currentUrl).hostname === 'pda.104.com.tw';
 
         console.error(`[Session] Current URL after navigation: ${currentUrl}`);
         console.error(`[Session] Logged in: ${isLoggedIn}`);

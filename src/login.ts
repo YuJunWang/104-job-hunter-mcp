@@ -1,4 +1,5 @@
-import { getBrowserPage } from './browser';
+import { getBrowserPage, closeBrowser } from './browser';
+import { isLoginUrl } from './utils/url';
 
 async function main() {
     console.log("正在開啟瀏覽器...");
@@ -20,16 +21,15 @@ async function main() {
         try {
             const currentUrl = page.url();
 
-            // 判斷是否已離開登入頁面（代表登入成功）
-            const isLoginPage =
-                currentUrl.includes('login.104.com.tw') ||
-                currentUrl.includes('pda.104.com.tw/login');
+            // 成功條件：已離開登入頁，且回到 104 網域。
+            // 只判斷「不是登入頁」不夠：Google/Apple 等第三方登入頁也「不是登入頁」。
+            const backOn104 = /(^|\.)104\.com\.tw$/i.test(new URL(currentUrl).hostname);
 
-            if (!isLoginPage) {
+            if (backOn104 && !isLoginUrl(currentUrl)) {
                 console.log(`\n✅ 偵測到登入成功！`);
                 console.log(`目前頁面：${currentUrl}`);
                 console.log("正在儲存 Cookie 並關閉瀏覽器...");
-                await page.context().browser()?.close();
+                await closeBrowser();
                 console.log("完成！Cookie 已儲存至 .chrome-profile/，之後使用不需重新登入。");
                 process.exit(0);
             }
@@ -48,8 +48,12 @@ async function main() {
     // 超過最大等待時間
     console.log(`\n⏰ 等待超過 ${MAX_WAIT_SECONDS} 秒，尚未偵測到登入成功。`);
     console.log("若您已登入但程式未偵測到，Cookie 可能已自動儲存。可以嘗試正常使用。");
-    await page.context().browser()?.close();
+    await closeBrowser();
     process.exit(1);
 }
 
-main().catch(console.error);
+main().catch(async (e) => {
+    console.error(e);
+    await closeBrowser();
+    process.exit(1);
+});

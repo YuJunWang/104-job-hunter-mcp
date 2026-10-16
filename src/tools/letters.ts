@@ -1,5 +1,6 @@
 import { getBrowserPage } from '../browser';
 import { z } from 'zod';
+import { isLoginUrl } from '../utils/url';
 
 export const LettersArgsSchema = z.object({
     job_url: z.string().url().describe("必填。任一有效的 104 職缺頁面網址（用於開啟應徵視窗以讀取推薦信範本）。請提供確定存在的職缺連結，例如您目前想應徵的任一職缺 URL。")
@@ -32,7 +33,7 @@ export async function getCoverLetters(args: LettersArgs) {
 
         // 登入狀態檢查：若未登入會被導向登入頁
         const currentUrl = page.url();
-        if (currentUrl.includes('login.104.com.tw') || currentUrl.includes('/login')) {
+        if (isLoginUrl(currentUrl)) {
             return {
                 error: "尚未登入 104 帳號，請先執行 `npx tsx src/login.ts` 登入後再讀取推薦信範本。"
             };
@@ -50,7 +51,7 @@ export async function getCoverLetters(args: LettersArgs) {
 
         // 定位「自我推薦信」下拉選單容器
         const letterDropdown = page.locator('.apply-msg .form-control, .apply-msg .text-region').first();
-        const hasDropdown = await letterDropdown.isVisible({ timeout: 5000 }).catch(() => false);
+        const hasDropdown = await letterDropdown.waitFor({ state: 'visible', timeout: 5000 }).then(() => true, () => false);
 
         // 精確定位應徵彈窗中可見的推薦信輸入框
         const textareaLocator = page.locator('.apply-popup textarea, .apply-msg textarea, textarea.form-control:visible').first();
@@ -72,9 +73,8 @@ export async function getCoverLetters(args: LettersArgs) {
                 }
             }
 
-            // 關閉下拉選單以重置狀態
-            await page.keyboard.press('Escape').catch(() => {});
-            await page.waitForTimeout(300);
+            // ⚠️ 不可按 Escape 收起選單：104 的 Escape 會關閉整個應徵彈窗，後續將讀不到任何範本。
+            // 下方迴圈會在選單收起時自行重新展開。
 
             for (const title of titles) {
                 // 若下拉選單已收起，重新展開
@@ -113,6 +113,13 @@ export async function getCoverLetters(args: LettersArgs) {
         // R4：用 Escape 鍵關閉 Modal，比 DOM evaluate click 更可靠
         await page.keyboard.press('Escape');
         await page.waitForTimeout(500);
+
+        // 每個帳號至少有「系統預設」一封；0 筆代表選擇器失效，必須大聲回報
+        if (templates.length === 0) {
+            return {
+                error: "讀不到任何推薦信範本（104 帳號至少應有「系統預設」）。可能是 104 應徵彈窗結構改版，請檢查 letters.ts 的選擇器。"
+            };
+        }
 
         return {
             status: 'success',

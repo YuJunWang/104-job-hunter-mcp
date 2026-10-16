@@ -1,4 +1,21 @@
 /**
+ * 判斷網址是否為 104 登入頁（單一判斷來源，供 session / login / letters 共用）。
+ * 104 新版登入頁為 signin.104.com.tw；舊版為 login.104.com.tw 與 pda.104.com.tw/login。
+ */
+export function isLoginUrl(input: string): boolean {
+    let url: URL;
+    try {
+        url = new URL(input);
+    } catch {
+        return false;
+    }
+    const host = url.hostname.toLowerCase();
+    if (host === 'signin.104.com.tw' || host === 'login.104.com.tw') return true;
+    if (host === 'pda.104.com.tw' && url.pathname.toLowerCase().startsWith('/login')) return true;
+    return false;
+}
+
+/**
  * 從 104 職缺網址或字串中提取 Job ID (如 796uv)
  * 支援以下格式：
  * - https://www.104.com.tw/job/796uv

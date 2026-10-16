@@ -111,3 +111,57 @@ export async function closeBrowser(): Promise<void> {
         }
     }
 }
+
+/**
+ * 所有工具共用同一個 page。若 MCP client 平行呼叫多個工具，
+ * 彼此的 page.goto 會互相覆蓋。此 lock 讓工具呼叫依序執行。
+ */
+let queue: Promise<unknown> = Promise.resolve();
+export function runExclusive<T>(fn: () => Promise<T>): Promise<T> {
+    const result = queue.then(fn, fn);
+    queue = result.catch(() => {});
+    return result;
+}
+
+const ORIGIN_104 = 'https://www.104.com.tw';
+
+export interface FetchIn104Result {
+    status: number;
+    ok: boolean;
+    text: string;
+    json: any;
+}
+
+/**
+ * 在 104 頁面內部發送 fetch。
+ *
+ * 為什麼不用 page.request：Playwright 的 APIRequestContext 不帶瀏覽器指紋
+ * (sec-ch-ua 等)，會被 104 WAF 直接回 403；頁內 fetch 與真人操作完全相同。
+ * fetch 是 same-origin，所以必須先確保頁面停在 www.104.com.tw。
+ */
+export async function fetchIn104(
+    url: string,
+    init: { method?: 'GET' | 'POST' | 'DELETE'; body?: unknown; referrer?: string } = {}
+): Promise<FetchIn104Result> {
+    const p = await getBrowserPage();
+    if (!p.url().startsWith(ORIGIN_104)) {
+        await p.goto(init.referrer || `${ORIGIN_104}/`, { waitUntil: 'domcontentloaded' });
+    }
+    return p.evaluate(async ({ url, method, body, referrer }) => {
+        const res = await fetch(url, {
+            method,
+            referrer,
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json, text/plain, */*',
+                'X-Requested-With': 'XMLHttpRequest',
+                ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+            },
+            body: body !== undefined ? JSON.stringify(body) : undefined,
+        });
+        const text = await res.text();
+        let json: any = null;
+        try { json = JSON.parse(text); } catch { /* 非 JSON（例如 201 空 body 或 HTML 錯誤頁） */ }
+        return { status: res.status, ok: res.ok, text, json };
+    }, { url, method: init.method || 'GET', body: init.body, referrer: init.referrer });
+}

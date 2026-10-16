@@ -105,12 +105,12 @@ export async function prepareApplication(args: ApplyArgs) {
             try {
                 // 104 應徵視窗自我推薦信的容器為 .apply-msg，觸發下拉框為 .apply-msg .form-control
                 const letterDropdown = page.locator('.apply-msg .form-control, .apply-msg .text-region').first();
-                if (await letterDropdown.isVisible({ timeout: 5000 }).catch(() => false)) {
+                if (await letterDropdown.waitFor({ state: 'visible', timeout: 5000 }).then(() => true, () => false)) {
                     await letterDropdown.click();
                     await page.waitForTimeout(600);
 
                     const targetOption = page.locator('.apply-msg .multiselect__option').filter({ hasText: template_title }).first();
-                    if (await targetOption.isVisible({ timeout: 3000 }).catch(() => false)) {
+                    if (await targetOption.waitFor({ state: 'visible', timeout: 3000 }).then(() => true, () => false)) {
                         selectedTemplate = (await targetOption.textContent())?.trim() || template_title;
                         await targetOption.click();
                         console.error(`[Apply] Successfully selected template: ${selectedTemplate}`);

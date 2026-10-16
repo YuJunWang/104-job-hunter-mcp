@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getBrowserPage } from '../browser';
+import { fetchIn104 } from '../browser';
 import { extractCompanyId } from '../utils/url';
 
 export const SearchCompanyArgsSchema = z.object({
@@ -11,7 +11,6 @@ export const SearchCompanyArgsSchema = z.object({
 export type SearchCompanyArgs = z.infer<typeof SearchCompanyArgsSchema>;
 
 export async function searchCompanies(args: SearchCompanyArgs) {
-    const page = await getBrowserPage(true);
     const query = new URLSearchParams({
         keyword: args.keyword,
         page: args.page.toString(),
@@ -20,21 +19,15 @@ export async function searchCompanies(args: SearchCompanyArgs) {
 
     const url = `https://www.104.com.tw/company/ajax/list?${query}`;
     
-    console.error(`[Search Company] Navigating API: ${url}`);
+    console.error(`[Search Company] Fetching API: ${url}`);
     
-    const response = await page.request.get(url, {
-        headers: {
-            'Referer': 'https://www.104.com.tw/company/search/',
-            'Accept': 'application/json, text/plain, */*',
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    });
+    const response = await fetchIn104(url, { referrer: 'https://www.104.com.tw/company/search/' });
 
-    if (!response.ok()) {
-        throw new Error(`查詢公司失敗，狀態碼: ${response.status()}`);
+    if (!response.ok || !response.json) {
+        throw new Error(`查詢公司失敗，狀態碼: ${response.status}`);
     }
 
-    const result = await response.json();
+    const result = response.json;
     const companies = result.data || [];
     
     return {
@@ -68,43 +61,29 @@ export async function getCompanyDetail(args: CompanyDetailArgs) {
         throw new Error("無法解析公司代碼，請確認輸入是否為正確的 104 公司網址或代碼。");
     }
 
-    const page = await getBrowserPage(true);
     const referer = `https://www.104.com.tw/company/${companyCode}`;
     const detailUrl = `https://www.104.com.tw/api/companies/${companyCode}/content`;
 
     console.error(`[Company Detail] Fetching info for: ${companyCode}`);
     
-    const detailResponse = await page.request.get(detailUrl, {
-        headers: {
-            'Referer': referer,
-            'Accept': 'application/json, text/plain, */*',
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    });
+    const detailResponse = await fetchIn104(detailUrl, { referrer: referer });
 
-    if (!detailResponse.ok()) {
-        throw new Error(`無法取得公司資料，可能是代碼錯誤。狀態碼: ${detailResponse.status()}`);
+    if (!detailResponse.ok || !detailResponse.json?.data) {
+        throw new Error(`無法取得公司資料，可能是代碼錯誤。狀態碼: ${detailResponse.status}`);
     }
 
-    const detailResult = await detailResponse.json();
-    const d = detailResult.data;
+    const d = detailResponse.json.data;
 
     // 預設一併抓取職缺
     const jobsUrl = `https://www.104.com.tw/api/companies/${companyCode}/jobs?page=1&pageSize=30`;
     let openJobs: any[] = [];
+    let openJobsError: string | undefined;
     
     try {
-        const jobsResponse = await page.request.get(jobsUrl, {
-            headers: {
-                'Referer': referer,
-                'Accept': 'application/json, text/plain, */*',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        });
-        if (jobsResponse.ok()) {
-            const jobsResult = await jobsResponse.json();
-            const topJobs = jobsResult.data?.list?.topJobs || [];
-            const normalJobs = jobsResult.data?.list?.normalJobs || [];
+        const jobsResponse = await fetchIn104(jobsUrl, { referrer: referer });
+        if (jobsResponse.ok && jobsResponse.json) {
+            const topJobs = jobsResponse.json.data?.list?.topJobs || [];
+            const normalJobs = jobsResponse.json.data?.list?.normalJobs || [];
             openJobs = [...topJobs, ...normalJobs].map(job => ({
                 jobCode: job.encodedJobNo,
                 title: job.jobName,
@@ -112,9 +91,12 @@ export async function getCompanyDetail(args: CompanyDetailArgs) {
                 location: job.jobAddrNoDesc || '',
                 url: `https://www.104.com.tw/job/${job.encodedJobNo}`
             }));
+        } else {
+            openJobsError = `職缺列表 API 回應異常，狀態碼: ${jobsResponse.status}`;
         }
     } catch (e) {
         console.error("[Company Detail] Failed to fetch jobs list", e);
+        openJobsError = `職缺列表讀取失敗：${(e as Error).message}`;
     }
 
     return {
@@ -133,6 +115,7 @@ export async function getCompanyDetail(args: CompanyDetailArgs) {
         isSaved: d.follow?.isSaved || false,
         openJobsCount: openJobs.length,
         openJobsList: openJobs,
+        ...(openJobsError ? { openJobsError } : {}),
         url: referer
     };
 }
