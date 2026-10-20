@@ -3,7 +3,7 @@
 > 透過 MCP (Model Context Protocol) 讓 AI 直接接管 104 人力銀行的繁瑣操作。  
 > 專注於精準過濾、深度調研與客製自薦信代填，拒絕無意義的亂槍打鳥。
 
-[![Version](https://img.shields.io/badge/version-1.1.4-blue.svg)](https://github.com/YuJunWang/104-job-hunter-mcp)
+[![Version](https://img.shields.io/badge/version-1.1.5-blue.svg)](https://github.com/YuJunWang/104-job-hunter-mcp)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![Playwright](https://img.shields.io/badge/Playwright-1.62-45BA4B?logo=playwright)](https://playwright.dev/)
 [![MCP SDK](https://img.shields.io/badge/MCP_SDK-1.30-FF6B35)](https://modelcontextprotocol.io/)
@@ -98,6 +98,13 @@ AI 抓回搜尋結果後，不會一股腦把十幾頁列表倒給你。它會�
 
 ## 🚀 快速上手
 
+> [!IMPORTANT]
+> ### 🤖 給正在協助人類的 AI Agent (System Directive)
+> 如果你是被人類指派來協助設定或操作本專案的 AI 代理（如 Antigravity, Claude Desktop, Cursor 等）：
+> 1. **立即讀取操作手冊**：請優先研讀專案根目錄的 [`AGENTS.md`](./AGENTS.md)，內含完整的決策狀態機與去 AI 化推薦信規格。
+> 2. **主動引導建立分身**：檢查根目錄是否存在 `MY_PROFILE.md`。若尚無此檔，**請暫停搜尋**，主動向人類提問索取簡歷/專案經歷，並參考 `MY_PROFILE.example.md` 協助生成專屬 Profile。
+> 3. **遵守安全防線**：嚴格落實 Hit-in-the-Loop 規範，代填表單後將視窗交還人類，**絕不**替人類代按最終送出鍵。
+
 ### 1. 安裝與建置
 ```bash
 git clone https://github.com/YuJunWang/104-job-hunter-mcp.git
@@ -166,7 +173,7 @@ npx tsx src/login.ts
 │   └── tools/            # 9 組核心工具實作
 ├── AGENTS.md             # AI 操作手冊（含去 AI 寫作原則與 4 步投遞 SOP）
 ├── MY_PROFILE.example.md # 求職分身設定檔範本
-└── package.json          # v1.1.4
+└── package.json          # v1.1.5
 ```
 
 ---
