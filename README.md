@@ -79,6 +79,23 @@ AI 抓回搜尋結果後，不會一股腦把十幾頁列表倒給你。它會�
 
 ---
 
+## 📋 前置準備清單 (Prerequisites)
+
+開始使用前，請確認你的電腦已安裝好以下基礎工具：
+
+| 項目 | 建議版本 | 必要性 | 說明與用途 | 下載來源 |
+| :--- | :--- | :---: | :--- | :--- |
+| **Node.js** | `>= 18.0.0` (推薦 20+ LTS) | 必備 | 執行 MCP 伺服器、編譯 TypeScript 與套件管理 | [官方下載](https://nodejs.org/) |
+| **Google Chrome** | 官方穩定版本 | 必備 | 本專案借用本機 Chrome 儲存 Profile，免除爬蟲驗證並維持登入 | [官方下載](https://www.google.com/chrome/) |
+| **Git** | 任意版本 | 必備 | 用於下載專案及日後 `git pull` 更新代碼 | [官方下載](https://git-scm.com/) |
+| **MCP Client** | 支援 MCP 之客戶端 | 必備 | 載入並調用本工具的 AI 環境 (如 Antigravity, Claude Desktop, Cursor) | - |
+| **104 會員帳號** | 個人正常帳號 | 必備 | 請先在 104 網站完成基本履歷填寫與自薦信範本儲存 | [104 官網](https://www.104.com.tw/) |
+
+> [!TIP]
+> **一鍵環境診斷**：安裝完套件後，可在終端機執行 `npm run check`，系統會自動檢測 Node.js 版本、Chrome 執行檔路徑、編譯狀態與登入 Profile，若有缺少會給出具體提示。
+
+---
+
 ## 🚀 快速上手
 
 ### 1. 安裝與建置
@@ -86,9 +103,9 @@ AI 抓回搜尋結果後，不會一股腦把十幾頁列表倒給你。它會�
 git clone https://github.com/YuJunWang/104-job-hunter-mcp.git
 cd 104-job-hunter-mcp
 npm install
+npm run check    # 💡 檢查本機環境與 Chrome 是否就緒
 npm run build
 ```
-*(環境需求：Node.js 18+、本機 Google Chrome)*
 
 ### 2. 登入 104 帳號（只需一次）
 ```bash
