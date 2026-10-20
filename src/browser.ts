@@ -68,6 +68,8 @@ export async function getBrowserPage(headless: boolean = false): Promise<Page> {
             args: [
                 '--no-first-run',
                 '--no-default-browser-check',
+                '--disable-popup-blocking',
+                '--disable-extensions',
                 ...(headless ? [] : ['--window-size=1280,900']),
             ],
             viewport: headless ? { width: 1280, height: 720 } : { width: 1280, height: 850 },
