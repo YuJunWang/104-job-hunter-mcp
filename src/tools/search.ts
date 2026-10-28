@@ -1,6 +1,7 @@
 import { getBrowserPage } from '../browser';
 import { z } from 'zod';
 import { resolveAreaCodes, SUPPORTED_AREAS } from '../utils/area';
+import { parseApplyRange } from '../utils/applyAnalysis';
 
 export const SearchArgsSchema = z.object({
     keyword: z.string().describe("職缺關鍵字，例如 '前端工程師' 或 'Node.js'"),
@@ -134,21 +135,27 @@ export async function searchJobs(args: SearchArgs) {
     const rawList = apiData.data?.list || apiData.data || [];
     const validRawList = filterJobResults(rawList, { excludeFeatured });
 
-    const jobs = validRawList.map((job: any) => ({
-        jobId: job.jobNo || (job.link?.job ? job.link.job.replace(/^.*\/job\//, '').split('?')[0] : ''),
-        title: job.jobName || '',
-        company: job.custName || '',
-        salary: job.salaryDesc || ((job.salaryLow && job.salaryLow > 0)
-            ? (job.salaryHigh >= 9999999
-                ? `月薪 ${Math.round(job.salaryLow / 10000)} 萬以上`
-                : `月薪 ${Math.round(job.salaryLow / 10000)}～${Math.round(job.salaryHigh / 10000)} 萬`)
-            : '薪資面議'),
-        location: job.jobAddrNoDesc || '',
-        description: job.description || '',
-        link: (job.link?.job ? (job.link.job.startsWith('http') ? job.link.job : `https:${job.link.job}`) : (job.jobNo ? `https://www.104.com.tw/job/${job.jobNo}` : '')),
-        skills: (job.pcSkills || []).map((s: any) => s.description),
-        isFeatured: job.jobType === 1
-    }));
+    const jobs = validRawList.map((job: any) => {
+        const slug = job.link?.job
+            ? job.link.job.replace(/^.*\/job\//, '').split(/[?#]/)[0]
+            : (job.jobNo ? Number(job.jobNo).toString(36) : '');
+        return {
+            jobId: slug,
+            title: job.jobName || '',
+            company: job.custName || '',
+            salary: job.salaryDesc || ((job.salaryLow && job.salaryLow > 0)
+                ? (job.salaryHigh >= 9999999
+                    ? `月薪 ${Math.round(job.salaryLow / 10000)} 萬以上`
+                    : `月薪 ${Math.round(job.salaryLow / 10000)}～${Math.round(job.salaryHigh / 10000)} 萬`)
+                : '薪資面議'),
+            location: job.jobAddrNoDesc || '',
+            description: job.description || '',
+            link: job.link?.job ? (job.link.job.startsWith('http') ? job.link.job : `https:${job.link.job}`) : (slug ? `https://www.104.com.tw/job/${slug}` : ''),
+            skills: (job.pcSkills || []).map((s: any) => s.description),
+            applyRange: parseApplyRange(job.analysisType).label,
+            isFeatured: job.jobType === 1
+        };
+    });
 
     return {
         keyword,

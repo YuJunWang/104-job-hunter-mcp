@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { fetchIn104 } from '../browser';
 import { extractCompanyId } from '../utils/url';
+import { parseApplyRange } from '../utils/applyAnalysis';
 
 export const SearchCompanyArgsSchema = z.object({
     keyword: z.string().describe("公司名稱關鍵字，例如 '台積電' 或 'Google'"),
@@ -93,11 +94,12 @@ export async function getCompanyDetail(args: CompanyDetailArgs) {
             const topJobs = jobsResponse.json.data?.list?.topJobs || [];
             const normalJobs = jobsResponse.json.data?.list?.normalJobs || [];
             openJobs = [...topJobs, ...normalJobs].map(job => ({
-                jobCode: job.encodedJobNo,
+                jobCode: job.jobNo || job.encodedJobNo || '',
                 title: job.jobName,
                 salary: job.jobSalaryDesc || '面議',
                 location: job.jobAddrNoDesc || '',
-                url: `https://www.104.com.tw/job/${job.encodedJobNo}`
+                applyRange: parseApplyRange(job.analysisType).label,
+                url: job.jobUrl || (job.jobNo ? `https://www.104.com.tw/job/${job.jobNo}` : '')
             }));
         } else {
             openJobsError = `職缺列表 API 回應異常，狀態碼: ${jobsResponse.status}`;

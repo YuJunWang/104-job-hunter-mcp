@@ -4,10 +4,15 @@
 
 export function slugToJobNo(slug: string): number {
     const s = slug.trim().toLowerCase();
-    if (!/^[0-9a-z]+$/i.test(s)) {
+    const cleaned = s.replace(/^.*\/job\//, '').split(/[?#]/)[0];
+    if (!/^[0-9a-z]+$/i.test(cleaned)) {
         throw new Error(`職缺代碼「${slug}」不是合法的 104 職缺代碼（應為英數字元，如 7bsyk）`);
     }
-    const jobNo = parseInt(s, 36);
+    // 104 內部十進位 jobNo 通常為 7~10 位純數字 (如 12308060, 15400848)
+    if (/^\d{7,10}$/.test(cleaned)) {
+        return parseInt(cleaned, 10);
+    }
+    const jobNo = parseInt(cleaned, 36);
     if (!Number.isSafeInteger(jobNo)) {
         throw new Error(`職缺代碼「${slug}」超出可轉換範圍`);
     }
