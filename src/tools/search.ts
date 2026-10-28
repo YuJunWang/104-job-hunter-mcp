@@ -15,8 +15,9 @@ export const SearchArgsSchema = z.object({
 });
 
 export type SearchArgs = z.infer<typeof SearchArgsSchema>;
+export type SearchInput = z.input<typeof SearchArgsSchema>;
 
-export function buildSearchUrl(args: SearchArgs, areaCodes?: string | null): string {
+export function buildSearchUrl(args: SearchInput, areaCodes?: string | null): string {
     const url = new URL('https://www.104.com.tw/jobs/search/');
     url.searchParams.set('keyword', args.keyword);
     url.searchParams.set('page', (args.page || 1).toString());

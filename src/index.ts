@@ -7,19 +7,19 @@ import { checkSession, SessionArgsSchema } from "./tools/session";
 import { searchCompanies, SearchCompanyArgsSchema, getCompanyDetail, CompanyDetailArgsSchema } from "./tools/company";
 import { saveJob, SaveJobArgsSchema, saveCompany, SaveCompanyArgsSchema } from "./tools/save";
 import { getCoverLetters, LettersArgsSchema } from "./tools/letters";
+import { getApplyAnalysis, ApplyAnalysisArgsSchema } from "./tools/applyAnalysis";
 import { closeBrowser, runExclusive } from "./browser";
-
 
 // 建立 MCP 伺服器實例
 const server = new McpServer({
     name: "104-job-hunter",
-    version: "1.1.4",
+    version: "1.2.0",
 });
 
 // 註冊搜尋工具
 server.tool(
     "job104_search",
-    "搜尋 104 人力銀行的職缺",
+    "搜尋 104 人力銀行的職缺，支援薪資下限、排除面議/廣告職缺、遠端型態、全兼職與最新排序",
     SearchArgsSchema.shape,
     async (args) => {
         const result = await runExclusive(() => searchJobs(args as any));
@@ -36,6 +36,19 @@ server.tool(
     DetailsArgsSchema.shape,
     async (args) => {
         const result = await runExclusive(() => getJobDetails(args as any));
+        return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
+        };
+    }
+);
+
+// 註冊應徵者競爭分析工具
+server.tool(
+    "job104_get_apply_analysis",
+    "取得單一職缺的應徵者競爭情報分析：透過數學精算反推確切應徵人數（total），以及學歷、年資、年齡、語言、主要科系、擅長技能與證照分布。僅在評估競爭態勢或求職信對齊時使用。",
+    ApplyAnalysisArgsSchema.shape,
+    async (args) => {
+        const result = await runExclusive(() => getApplyAnalysis(args as any));
         return {
             content: [{ type: "text", text: JSON.stringify(result, null, 2) }]
         };
@@ -97,7 +110,7 @@ server.tool(
 // 註冊取得公司詳細資訊工具
 server.tool(
     "job104_get_company_detail",
-    "取得單一公司的詳細內容，包含公司簡介、福利制度、聯絡人資訊，並預設一併回傳該公司的開放職缺列表。",
+    "取得單一公司的詳細內容（簡介、福利、聯絡人）與開放職缺列表，支援以 keyword 在該公司所有職缺 JD 內文中全文比對關鍵字。",
     CompanyDetailArgsSchema.shape,
     async (args) => {
         const result = await runExclusive(() => getCompanyDetail(args as any));
