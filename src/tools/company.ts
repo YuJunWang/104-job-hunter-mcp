@@ -48,12 +48,20 @@ export async function searchCompanies(args: SearchCompanyArgs) {
     };
 }
 
-
 export const CompanyDetailArgsSchema = z.object({
-    companyInput: z.string().describe("公司代碼或是公司網址。例如 '1a2x6bmutz' 或 'https://www.104.com.tw/company/1a2x6bmutz'")
+    companyInput: z.string().describe("公司代碼或是公司網址。例如 '1a2x6bmutz' 或 'https://www.104.com.tw/company/1a2x6bmutz'"),
+    keyword: z.string().optional().describe("在該公司內部搜尋職缺的關鍵字（比對職稱與 JD 內文，如 'C++' 或 'AWS'）")
 });
 
 export type CompanyDetailArgs = z.infer<typeof CompanyDetailArgsSchema>;
+
+export function buildCompanyJobsUrl(companyCode: string, keyword?: string): string {
+    const base = `https://www.104.com.tw/api/companies/${companyCode}/jobs?page=1&pageSize=50`;
+    if (keyword && keyword.trim()) {
+        return `${base}&keyword=${encodeURIComponent(keyword.trim())}`;
+    }
+    return base;
+}
 
 export async function getCompanyDetail(args: CompanyDetailArgs) {
     const companyCode = extractCompanyId(args.companyInput);
@@ -74,8 +82,8 @@ export async function getCompanyDetail(args: CompanyDetailArgs) {
 
     const d = detailResponse.json.data;
 
-    // 預設一併抓取職缺
-    const jobsUrl = `https://www.104.com.tw/api/companies/${companyCode}/jobs?page=1&pageSize=30`;
+    // 抓取職缺（支援 keyword 在公司內部 JD 內文搜尋）
+    const jobsUrl = buildCompanyJobsUrl(companyCode, args.keyword);
     let openJobs: any[] = [];
     let openJobsError: string | undefined;
     
@@ -113,6 +121,7 @@ export async function getCompanyDetail(args: CompanyDetailArgs) {
         products: d.product || '',
         welfare: d.welfare || '',
         isSaved: d.follow?.isSaved || false,
+        jobKeyword: args.keyword || null,
         openJobsCount: openJobs.length,
         openJobsList: openJobs,
         ...(openJobsError ? { openJobsError } : {}),
