@@ -5,15 +5,79 @@ import { resolveAreaCodes, SUPPORTED_AREAS } from '../utils/area';
 export const SearchArgsSchema = z.object({
     keyword: z.string().describe("職缺關鍵字，例如 '前端工程師' 或 'Node.js'"),
     location: z.string().optional().describe("工作地點關鍵字，例如 '台北市'（非必要）"),
-    page: z.number().optional().default(1).describe("頁數，預設為 1")
+    page: z.number().optional().default(1).describe("頁數，預設為 1"),
+    salaryMin: z.number().optional().describe("月薪下限（新台幣），例如 60000。自動附加 scstrict 確保篩選生效"),
+    excludeNegotiable: z.boolean().optional().default(false).describe("是否排除面議職缺，預設為 false"),
+    excludeFeatured: z.boolean().optional().default(false).describe("是否排除 104 付費廣告職缺（如 COACH 等無關推廣缺），預設為 false"),
+    remote: z.enum(['full', 'partial', 'any']).optional().describe("遠端型態：'full' 完全遠端 / 'partial' 部分遠端 / 'any' 皆可"),
+    jobType: z.enum(['fulltime', 'parttime']).optional().describe("工作性質：'fulltime' 全職 / 'parttime' 兼職"),
+    sort: z.enum(['newest', 'salary', 'relevance']).optional().default('relevance').describe("排序方式：'newest' 最新更新優先 / 'salary' 待遇高到低 / 'relevance' 相關度優先")
 });
 
 export type SearchArgs = z.infer<typeof SearchArgsSchema>;
 
-export async function searchJobs(args: SearchArgs) {
-    const { keyword, location, page: pageNum } = args;
+export function buildSearchUrl(args: SearchArgs, areaCodes?: string | null): string {
+    const url = new URL('https://www.104.com.tw/jobs/search/');
+    url.searchParams.set('keyword', args.keyword);
+    url.searchParams.set('page', (args.page || 1).toString());
+    url.searchParams.set('expansionType', 'area,spec,com,job,wf,wktm');
+    url.searchParams.set('mode', 's');
+    url.searchParams.set('jobsource', '2018indexpoc');
 
-    // 104 的 area 參數只吃代碼；地名辨識失敗時要讓 AI 知道，避免它以為結果已過濾
+    if (areaCodes) {
+        url.searchParams.set('area', areaCodes);
+    }
+
+    // 薪資篩選 (需同時送 scmin, sctp=M, scstrict=1)
+    if (args.salaryMin && args.salaryMin > 0) {
+        url.searchParams.set('scmin', args.salaryMin.toString());
+        url.searchParams.set('sctp', 'M');
+        url.searchParams.set('scstrict', '1');
+    }
+
+    if (args.excludeNegotiable) {
+        url.searchParams.set('scstrict', '1');
+        if (!args.salaryMin) {
+            url.searchParams.set('scmin', '1');
+            url.searchParams.set('sctp', 'M');
+        }
+    }
+
+    // 遠端工作 (1: 完全, 2: 部分, 1,2: 皆可)
+    if (args.remote === 'full') url.searchParams.set('remoteWork', '1');
+    else if (args.remote === 'partial') url.searchParams.set('remoteWork', '2');
+    else if (args.remote === 'any') url.searchParams.set('remoteWork', '1,2');
+
+    // 全兼職 (ro: 1=全職, 2=兼職, 0=不限)
+    if (args.jobType === 'fulltime') url.searchParams.set('ro', '1');
+    else if (args.jobType === 'parttime') url.searchParams.set('ro', '2');
+    else url.searchParams.set('ro', '0');
+
+    // 排序 (15: 相關性, 16: 最新更新, 13: 待遇高到低)
+    if (args.sort === 'newest') {
+        url.searchParams.set('order', '16');
+        url.searchParams.set('asc', '0');
+    } else if (args.sort === 'salary') {
+        url.searchParams.set('order', '13');
+        url.searchParams.set('asc', '0');
+    } else {
+        url.searchParams.set('order', '15');
+        url.searchParams.set('asc', '0');
+    }
+
+    return url.toString();
+}
+
+export function filterJobResults(rawList: any[], options: { excludeFeatured?: boolean }): any[] {
+    if (!Array.isArray(rawList)) return [];
+    if (!options.excludeFeatured) return rawList;
+    // jobType === 1 代表 104 付費置頂廣告（經常無視搜尋關鍵字）
+    return rawList.filter((job: any) => job.jobType !== 1);
+}
+
+export async function searchJobs(args: SearchArgs) {
+    const { keyword, location, page: pageNum, excludeFeatured } = args;
+
     const area = location ? resolveAreaCodes(location) : null;
     if (area && !area.codes) {
         return {
@@ -22,23 +86,10 @@ export async function searchJobs(args: SearchArgs) {
     }
 
     const browserPage = await getBrowserPage(false);
-    
-    // 建立 104 搜尋網址
-    const url = new URL('https://www.104.com.tw/jobs/search/');
-    url.searchParams.set('ro', '0');
-    url.searchParams.set('keyword', keyword);
-    if (area?.codes) url.searchParams.set('area', area.codes);
-    url.searchParams.set('expansionType', 'area,spec,com,job,wf,wktm');
-    url.searchParams.set('order', '15');
-    url.searchParams.set('asc', '0');
-    url.searchParams.set('page', pageNum.toString());
-    url.searchParams.set('mode', 's');
-    url.searchParams.set('jobsource', '2018indexpoc');
+    const searchUrl = buildSearchUrl(args, area?.codes);
 
-    console.error(`[Search] Navigating to ${url.toString()}`);
+    console.error(`[Search] Navigating to ${searchUrl}`);
     
-    // 用 Promise 監聽 104 的後端 JSON API，繞過所有 DOM 防爬蟲機制
-    // ⚠️ 使用命名函式 + off() 確保每次搜尋後清除監聽器，避免 EventEmitter 洩漏
     const apiDataPromise = new Promise<any>((resolve, reject) => {
         const timeout = setTimeout(() => {
             browserPage.off('response', handler);
@@ -61,7 +112,7 @@ export async function searchJobs(args: SearchArgs) {
         browserPage.on('response', handler);
     });
 
-    await browserPage.goto(url.toString(), { waitUntil: 'domcontentloaded' });
+    await browserPage.goto(searchUrl, { waitUntil: 'domcontentloaded' });
     
     let apiData: any;
     try {
@@ -70,9 +121,20 @@ export async function searchJobs(args: SearchArgs) {
         return { error: `無法取得職缺資料：${(e as Error).message}` };
     }
 
-    // 將 API 回傳的 JSON 轉換成我們的格式
+    // 若 104 判定關鍵字是公司名，回傳引導提示
+    if (apiData.metadata?.companyKeyword) {
+        return {
+            keyword,
+            hint: `104 系統判定「${keyword}」為公司名稱。建議改用 job104_search_companies 查詢該公司，或使用 job104_get_company_detail 深入搜尋該公司開放之職缺。`,
+            results: []
+        };
+    }
+
     const rawList = apiData.data?.list || apiData.data || [];
-    const jobs = (Array.isArray(rawList) ? rawList : []).map((job: any) => ({
+    const validRawList = filterJobResults(rawList, { excludeFeatured });
+
+    const jobs = validRawList.map((job: any) => ({
+        jobId: job.jobNo || (job.link?.job ? job.link.job.replace(/^.*\/job\//, '').split('?')[0] : ''),
         title: job.jobName || '',
         company: job.custName || '',
         salary: job.salaryDesc || ((job.salaryLow && job.salaryLow > 0)
@@ -84,8 +146,8 @@ export async function searchJobs(args: SearchArgs) {
         description: job.description || '',
         link: (job.link?.job ? (job.link.job.startsWith('http') ? job.link.job : `https:${job.link.job}`) : (job.jobNo ? `https://www.104.com.tw/job/${job.jobNo}` : '')),
         skills: (job.pcSkills || []).map((s: any) => s.description),
+        isFeatured: job.jobType === 1
     }));
-
 
     return {
         keyword,
