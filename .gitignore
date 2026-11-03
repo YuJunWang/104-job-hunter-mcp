@@ -11,3 +11,7 @@ scratch/
 .screenshots/
 test_screenshot.png
 data/
+
+# Superpowers agent artifacts
+docs/superpowers/
+.superpowers/
