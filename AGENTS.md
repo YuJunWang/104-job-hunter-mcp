@@ -33,15 +33,16 @@
 | 工具名稱 | 最佳呼叫時機 | 關鍵參數 | 核心注意事項 |
 | :--- | :--- | :--- | :--- |
 | `job104_check_session` | 每次對話起手式 | 無 | 確認 Cookie 有效性與 `signin.104.com.tw` 跳轉狀態 |
-| `job104_search` | 劇本 A：搜尋職缺 | `keyword`, `location`, `salaryMin`, `excludeFeatured`, `sort`, `remote` | `location` 自動轉代碼；支援 `excludeFeatured: true` 排除付費廣告，`salaryMin` 嚴格下限；**嚴禁直接倒出未過濾結果** |
-| `job104_get_details` | 劇本 C：職缺深度診斷 | `job_url` | 獲取完整 JD、薪資待遇、加分條件與 HR 聯絡人 |
-| `job104_get_apply_analysis` | 劇本 D：競爭情報診斷 | `jobUrlOrId` | **數學反推確切應徵總人數**，解析學歷、年資、語言、Top 10 技能與證照分布 |
-| `job104_get_cover_letters` | 劇本 C：起草推薦信前 | 無 | 提取人類帳號在 104 儲存的範本，**繼承人類原本的真實語氣** |
-| `job104_prepare_application` | 劇本 C：人類確認後代填 | `job_url`, `cover_letter`, `dry_run: false` | 打開視窗、選定履歷、填入自薦信並截圖。**鐵律：絕不按送出** |
-| `job104_search_companies` | 劇本 B：搜尋特定企業 | `keyword` | 取得目標公司之 `company_url` 與代碼 |
-| `job104_get_company_detail` | 劇本 B：公司深度分析 | `company_url`, `keyword` | 提取企業福利文化，支援以 `keyword` 比對該公司職缺 **JD 內文** 全文 |
-| `job104_save_job` | 人類指示收藏時 | `job_url` | 將職缺加入使用者的 104 收藏名單 |
-| `job104_save_company` | 人類指示追蹤時 | `company_url` | 將公司加入使用者的 104 追蹤名單 |
+| `job104_search` | 劇本 A：搜尋職缺 | `keyword`（必填）, `location`, `page`, `salaryMin`, `excludeNegotiable`, `excludeFeatured`, `remote`, `jobType`, `sort` | `location` 自動轉代碼；`excludeFeatured: true` 排除付費廣告，`excludeNegotiable: true` 排除面議，`salaryMin` 嚴格下限；`jobType: 'fulltime' \| 'parttime'`；`sort: 'newest' \| 'salary' \| 'relevance'`；**嚴禁直接倒出未過濾結果** |
+| `job104_get_details` | 劇本 C：職缺深度診斷 | `job_url`（必填） | 獲取完整 JD、薪資待遇、加分條件與 HR 聯絡人 |
+| `job104_get_apply_analysis` | 劇本 D：競爭情報診斷 | `jobUrlOrId`（必填） | **數學反推確切應徵總人數**，解析學歷、年資、語言、Top 10 技能與證照分布 |
+| `job104_get_cover_letters` | 劇本 C：起草推薦信前 | `job_url`（必填） | 需要任一有效職缺網址來開啟應徵視窗讀取範本（通常帶入目標職缺）；提取人類帳號在 104 儲存的範本，**繼承人類原本的真實語氣** |
+| `job104_prepare_application` | 劇本 C：人類確認後代填 | `job_url`（必填）, `cover_letter_text`, `template_title`, `dry_run` | 打開應徵視窗、選定推薦信範本、填入自薦信。**只有 `dry_run: true` 會截圖**；兩種模式都不會關閉視窗。**鐵律：絕不按送出** |
+| `job104_search_companies` | 劇本 B：搜尋特定企業 | `keyword`（必填）, `page`, `pageSize` | 取得目標公司的網址與代碼 |
+| `job104_get_company_detail` | 劇本 B：公司深度分析 | `companyInput`（必填，代碼或網址）, `keyword` | 提取企業福利文化，支援以 `keyword` 比對該公司職缺 **JD 內文** 全文 |
+| `job104_save_job` | 人類指示收藏時 | `jobInput`（必填，代碼或網址） | 將職缺加入使用者的 104 收藏名單（直接寫入） |
+| `job104_save_company` | 人類指示追蹤時 | `companyInput`（必填，代碼或網址） | 將公司加入使用者的 104 追蹤名單（直接寫入） |
+| `job104_reload_server` | 重新 build 後載入新程式碼 | 無 | 讓 MCP 伺服器優雅結束並由客戶端重新啟動；會一併關閉瀏覽器 |
 
 ---
 
@@ -87,7 +88,7 @@
 
 1. **鎖定代碼**：呼叫 `job104_search_companies(keyword)` 取得公司頁面網址或代碼。
 2. **深層萃取與 JD 全文搜尋**：
-   - 呼叫 `job104_get_company_detail(company_url, keyword)`。
+   - 呼叫 `job104_get_company_detail(companyInput, keyword)`，`companyInput` 可帶公司代碼或公司網址。
    - **JD 全文關鍵字技巧**：許多大廠的職稱寫得很概括（如「軟體工程師」），但內文嚴格要求特定語言。帶入 `keyword`（例如 `keyword: 'C++'` 或 `keyword: 'FastAPI'`），104 會直接在該公司所有職缺的 **JD 內文** 中全文比對，挖出隱藏好缺！
 3. **立體化診斷**：
    - **文化與福利比對**：核對是否符合使用者的發展期望。
@@ -123,7 +124,7 @@
 - 對比 `MY_PROFILE.md` 與劇本 D 的競爭情報，誠實條列「契合優勢」與「潛在落差」。絕不硬拗無中生有的經歷。
 
 #### Step 2. 起草極致量化自薦信 (Battle-Tested 4-Point Spec)
-- 先呼叫 `job104_get_cover_letters` 了解使用者原有的自薦信風格與稱呼習慣。
+- 先呼叫 `job104_get_cover_letters(job_url)`（帶入目標職缺網址）了解使用者原有的自薦信風格、稱呼習慣與範本名稱。
 - **自薦信黃金排版規格**（經 104 介面與 HR 視窗實戰驗證）：
   - **嚴格 4 點架構**，每點字數嚴格控制在 **105 ~ 115 個繁體中文字**。
   - *(設計原理：104 應徵欄位每行約 25~30 字，105~115 字可形成視覺平衡的「完美 2 整行」，杜絕單字懸空孤行，手機與桌面端閱讀體驗極佳)*。
@@ -141,11 +142,17 @@
 
 #### Step 3. 獲取確認後代填 (MCP Auto-Fill)
 - 在對話中完整展示草擬的 4 點自薦信，徵詢人類確認或微調。
-- **獲人類明確確認後**，以 `dry_run: false` 呼叫 `job104_prepare_application(job_url, cover_letter, resume_id)`。
-- 工具會自動啟動 Chromium、開啟應徵彈窗、選取指定履歷、填入推薦信並儲存畫面截圖。
+- **獲人類明確確認後**，先以 `dry_run: true` 呼叫 `job104_prepare_application(job_url, cover_letter_text, template_title, dry_run: true)` 產生預覽：
+  - `cover_letter_text`：確認後的自薦信全文，會覆蓋推薦信文字框。
+  - `template_title`（選填）：Step 2 讀到的範本名稱，例如 `'系統預設'`；找不到時維持 104 預設範本。
+  - 工具會開啟 Chromium、點擊「我要應徵」、選定推薦信範本、填入自薦信，並把截圖存到 `.screenshots/`（路徑見回傳的 `screenshot_path`）。
+- 本工具**不會選擇履歷**，履歷沿用 104 應徵視窗的預設值，請在 Step 4 提醒人類確認。
 
 #### Step 4. 人工肉眼驗證與親自送出 (Hit-in-the-Loop)
-- 回報完成狀態並提供截圖，提醒人類檢查字數與版面。
+- 提供 `screenshot_path` 截圖，提醒人類檢查字數、版面與履歷選擇。
+- 若需調整內容，回到 Step 3 修改 `cover_letter_text` 後再跑一次 `dry_run: true`。
+- 人類確認預覽無誤後，以 `dry_run: false` 再呼叫一次 `job104_prepare_application`，保留應徵視窗讓人類操作。此模式不會截圖。
+- 視窗開著時，**不要再呼叫其他 `job104_*` 工具**：所有工具共用同一個瀏覽器分頁，再呼叫會把應徵視窗導走。
 - **安全邊界承諾**：Agent 任務在此結束，**嚴禁點擊最後的「確認送出」**。由人類在 Chrome 視窗內親手點擊送出。
 
 ---
