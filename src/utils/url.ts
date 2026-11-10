@@ -41,6 +41,21 @@ export function extractJobId(input: string): string | null {
 }
 
 /**
+ * 正規化職缺網址或代碼。
+ * 無論輸入為完整的 104 職缺網址（如 https://www.104.com.tw/job/796uv?jobsource=xxx）
+ * 或是純職缺代碼（如 796uv），皆轉為標準結構 { jobId, jobUrl }。
+ * 若無法解析則回傳 null。
+ */
+export function normalizeJobUrl(input: string): { jobId: string; jobUrl: string } | null {
+    const jobId = extractJobId(input?.trim());
+    if (!jobId) return null;
+    return {
+        jobId,
+        jobUrl: `https://www.104.com.tw/job/${jobId}`,
+    };
+}
+
+/**
  * 從 104 公司網址或字串中提取 Company ID (如 1a2x6bmutz)
  * 支援以下格式：
  * - https://www.104.com.tw/company/1a2x6bmutz

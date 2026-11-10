@@ -1,9 +1,9 @@
 import { getBrowserPage } from '../browser';
 import { z } from 'zod';
-import { extractJobId } from '../utils/url';
+import { normalizeJobUrl } from '../utils/url';
 
 export const DetailsArgsSchema = z.object({
-    job_url: z.string().url().describe("104 職缺頁面網址，格式如 https://www.104.com.tw/job/xxxxx")
+    job_url: z.string().min(1).describe("104 職缺頁面網址或職缺代碼，格式如 https://www.104.com.tw/job/xxxxx 或 xxxxx")
 });
 
 export type DetailsArgs = z.infer<typeof DetailsArgsSchema>;
@@ -12,12 +12,13 @@ export async function getJobDetails(args: DetailsArgs) {
     const browserPage = await getBrowserPage(false);
     const { job_url } = args;
 
-    const jobId = extractJobId(job_url);
-    if (!jobId) {
-        return { error: '無效的 104 職缺 URL 格式，應為 https://www.104.com.tw/job/xxxxx' };
+    const normalized = normalizeJobUrl(job_url);
+    if (!normalized) {
+        return { error: '無效的 104 職缺 URL 或代碼格式，應為 https://www.104.com.tw/job/xxxxx 或職缺代碼' };
     }
+    const { jobId, jobUrl } = normalized;
 
-    console.error(`[Details] Navigating to ${job_url} (jobId: ${jobId})`);
+    console.error(`[Details] Navigating to ${jobUrl} (jobId: ${jobId})`);
 
     // 用 Promise 攔截 104 後端的 Job Detail API
     // ⚠️ 使用命名函式 + off() 確保呼叫後清除監聽器，避免 EventEmitter 洩漏
@@ -45,7 +46,7 @@ export async function getJobDetails(args: DetailsArgs) {
     });
 
     await browserPage.keyboard.press('Escape').catch(() => {});
-    await browserPage.goto(job_url, { waitUntil: 'domcontentloaded' });
+    await browserPage.goto(jobUrl, { waitUntil: 'domcontentloaded' });
 
     let apiData: any;
     try {

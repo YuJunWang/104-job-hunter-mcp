@@ -1,10 +1,10 @@
 import { getBrowserPage } from '../browser';
 import { z } from 'zod';
 import * as path from 'path';
-import { extractJobId } from '../utils/url';
+import { normalizeJobUrl } from '../utils/url';
 
 export const ApplyArgsSchema = z.object({
-    job_url: z.string().url().describe("104 職缺頁面網址"),
+    job_url: z.string().min(1).describe("104 職缺頁面網址或職缺代碼"),
     template_title: z.string().optional().describe("選填。指定選用 104 帳號內的推薦信範本名稱（例如 '系統預設'、'自訂推薦信1' 等）。"),
     cover_letter_text: z.string().optional().describe("選填。自傳或給公司的求職信內容。若提供則會填入並覆蓋推薦信文字框。"),
     dry_run: z.boolean().optional().default(false).describe("Dry run 模式：走完所有步驟但不點送出，並截圖回傳。預設為 false。")
@@ -14,9 +14,14 @@ export type ApplyArgs = z.infer<typeof ApplyArgsSchema>;
 
 export async function prepareApplication(args: ApplyArgs) {
     const { job_url, template_title, cover_letter_text, dry_run = false } = args;
-    const page = await getBrowserPage(false);
 
-    const jobId = extractJobId(job_url);
+    const normalized = normalizeJobUrl(job_url);
+    if (!normalized) {
+        return { status: "error", error: "無效的 104 職缺網址或代碼" };
+    }
+    const { jobId, jobUrl } = normalized;
+
+    const page = await getBrowserPage(false);
     let apiIsApplied: boolean | null = null;
 
     // 第一重防護（API層）：監聽 104 後端 /api/jobs/{jobId} API，取得系統層最真實的 isApplied 旗標
@@ -34,8 +39,8 @@ export async function prepareApplication(args: ApplyArgs) {
     };
     page.on('response', apiHandler);
 
-    console.error(`[Apply] Navigating to ${job_url} (dry_run=${dry_run})`);
-    await page.goto(job_url, { waitUntil: 'domcontentloaded' });
+    console.error(`[Apply] Navigating to ${jobUrl} (dry_run=${dry_run})`);
+    await page.goto(jobUrl, { waitUntil: 'domcontentloaded' });
     
     // 短暫等待讓非同步 API 回應或 DOM 初次渲染完成
     await page.waitForTimeout(1000);

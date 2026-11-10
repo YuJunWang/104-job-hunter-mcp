@@ -40,7 +40,11 @@ function fitsPercent(percent: number, n: number): boolean {
     return Math.abs((k * 10000) / n - percent * 100) <= 0.5 + 1e-9;
 }
 
-export function inferApplicantCount(percents: readonly number[], bounds?: { min: number; max: number }): number[] {
+export function inferApplicantCount(
+    percents: readonly number[],
+    bounds?: { min: number; max: number },
+    dimensionGroups?: readonly (readonly number[])[]
+): number[] {
     const informative = percents.filter(p => p > 0);
     if (informative.length === 0) return [];
 
@@ -49,7 +53,27 @@ export function inferApplicantCount(percents: readonly number[], bounds?: { min:
     const candidates: number[] = [];
 
     for (let n = lo; n <= hi && candidates.length < 5; n++) {
-        if (informative.every(p => fitsPercent(p, n))) {
+        if (!informative.every(p => fitsPercent(p, n))) {
+            continue;
+        }
+
+        // 互斥維度群組檢查：若群組百分比總和約為 100%（例如 edu, age, exp），其四捨五入的人數加總必須嚴格等於候選人數 n
+        let groupsValid = true;
+        if (dimensionGroups) {
+            for (const group of dimensionGroups) {
+                if (!group || group.length === 0) continue;
+                const groupSum = group.reduce((acc, p) => acc + p, 0);
+                if (Math.abs(groupSum - 100) <= 5.0) {
+                    const countSum = group.reduce((acc, p) => acc + Math.round((p * n) / 100), 0);
+                    if (countSum !== n) {
+                        groupsValid = false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (groupsValid) {
             candidates.push(n);
         }
     }
@@ -157,17 +181,22 @@ export function normalizeApplyAnalysis(
         ...expItems.map(i => i.percent),
     ];
 
+    const dimensionGroups = [
+        eduItems.map(i => i.percent),
+        ageItems.map(i => i.percent),
+        expItems.map(i => i.percent),
+    ];
+
     let total: number | null = null;
     let totalBasis: 'inferred' | 'exact' | 'unknown' = 'unknown';
     let candidates: number[] = [];
 
-    if (allPercents.length === 0) {
-        if (meta.rangeCode === 1) {
-            total = 0;
-            totalBasis = 'inferred';
-        }
-    } else {
-        candidates = inferApplicantCount(allPercents, { min: range.min, max: range.max });
+    if (allPercents.length > 0) {
+        candidates = inferApplicantCount(
+            allPercents,
+            { min: range.min, max: range.max },
+            dimensionGroups
+        );
         if (candidates.length > 0) {
             total = candidates[0];
             totalBasis = 'inferred';

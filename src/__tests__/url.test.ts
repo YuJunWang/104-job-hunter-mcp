@@ -1,5 +1,8 @@
-import { extractJobId, extractCompanyId, isLoginUrl } from '../utils/url';
+import { extractJobId, extractCompanyId, isLoginUrl, normalizeJobUrl } from '../utils/url';
 import { resolveAreaCodes } from '../utils/area';
+import { DetailsArgsSchema } from '../tools/details';
+import { ApplyArgsSchema } from '../tools/apply';
+import { LettersArgsSchema } from '../tools/letters';
 
 function assert(condition: boolean, message: string) {
     if (!condition) {
@@ -36,6 +39,35 @@ async function runTests() {
             extractJobId("https://www.google.com") === null,
             "Should return null for non-104 URLs"
         );
+
+        // --- normalizeJobUrl Tests ---
+        const norm1 = normalizeJobUrl("https://www.104.com.tw/job/796uv?jobsource=xxx");
+        assert(
+            norm1 !== null && norm1.jobId === "796uv" && norm1.jobUrl === "https://www.104.com.tw/job/796uv",
+            "normalizeJobUrl should normalize full URL with query params"
+        );
+
+        const norm2 = normalizeJobUrl("796uv");
+        assert(
+            norm2 !== null && norm2.jobId === "796uv" && norm2.jobUrl === "https://www.104.com.tw/job/796uv",
+            "normalizeJobUrl should normalize raw jobId"
+        );
+
+        const norm3 = normalizeJobUrl("https://www.google.com");
+        assert(
+            norm3 === null,
+            "normalizeJobUrl should return null for non-104 URLs"
+        );
+
+        // --- Schema Tests for job_url supporting raw jobId ---
+        const detailsParsed = DetailsArgsSchema.parse({ job_url: "796uv" });
+        assert(detailsParsed.job_url === "796uv", "DetailsArgsSchema should accept raw jobId");
+
+        const applyParsed = ApplyArgsSchema.parse({ job_url: "796uv" });
+        assert(applyParsed.job_url === "796uv", "ApplyArgsSchema should accept raw jobId");
+
+        const lettersParsed = LettersArgsSchema.parse({ job_url: "796uv" });
+        assert(lettersParsed.job_url === "796uv", "LettersArgsSchema should accept raw jobId");
 
         // --- Company ID Tests ---
         assert(

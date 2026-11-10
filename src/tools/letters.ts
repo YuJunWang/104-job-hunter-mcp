@@ -1,9 +1,9 @@
 import { getBrowserPage } from '../browser';
 import { z } from 'zod';
-import { isLoginUrl } from '../utils/url';
+import { isLoginUrl, normalizeJobUrl } from '../utils/url';
 
 export const LettersArgsSchema = z.object({
-    job_url: z.string().url().describe("必填。任一有效的 104 職缺頁面網址（用於開啟應徵視窗以讀取推薦信範本）。請提供確定存在的職缺連結，例如您目前想應徵的任一職缺 URL。")
+    job_url: z.string().min(1).describe("必填。任一有效的 104 職缺頁面網址或職缺代碼（用於開啟應徵視窗以讀取推薦信範本）。")
 });
 
 export type LettersArgs = z.infer<typeof LettersArgsSchema>;
@@ -21,9 +21,14 @@ export interface CoverLetterTemplate {
  * job_url 為必填，因為需要透過真實職缺的應徵視窗讀取推薦信選單。
  */
 export async function getCoverLetters(args: LettersArgs) {
-    // ⚠️ 必須由 caller 提供有效職缺 URL，避免硬編碼 URL 失效問題
+    const normalized = normalizeJobUrl(args.job_url);
+    if (!normalized) {
+        return { error: "無效的 104 職缺網址或代碼" };
+    }
+    const targetJobUrl = normalized.jobUrl;
+
+    // ⚠️ 必須由 caller 提供有效職缺 URL 或代碼，避免硬編碼 URL 失效問題
     const page = await getBrowserPage(false);
-    const targetJobUrl = args.job_url;
 
     console.error(`[Letters] Navigating to job page: ${targetJobUrl} to access cover letters...`);
 

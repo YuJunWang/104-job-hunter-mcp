@@ -25,6 +25,28 @@ async function runTests() {
     const candidates8 = inferApplicantCount([50.00, 12.50, 37.50], { min: 6, max: 10 });
     assert(candidates8.includes(8), "Should infer 8 from percentages [50.00, 12.50, 37.50]");
 
+    // Dimension sum constraint tests
+    const candidates3 = inferApplicantCount(
+        [33.33, 33.33, 33.33],
+        { min: 1, max: 10 },
+        [[33.33, 33.33, 33.33]]
+    );
+    assert(
+        candidates3.length === 3 && candidates3[0] === 3 && candidates3[1] === 6 && candidates3[2] === 9,
+        `Candidates should be [3, 6, 9], got ${JSON.stringify(candidates3)}`
+    );
+
+    // Sum-to-N constraint: 10/31 = 32.26% fits individually, but 10 + 10 + 10 = 30 != 31
+    const candidates31 = inferApplicantCount(
+        [32.26, 32.26, 32.26],
+        { min: 31, max: 35 },
+        [[32.26, 32.26, 32.26]]
+    );
+    assert(
+        !candidates31.includes(31),
+        "31 should be rejected because sum of rounded counts (10+10+10=30) != 31"
+    );
+
     // 4. normalizeApplyAnalysis
     const mockRaw = {
         edu: {
@@ -59,6 +81,14 @@ async function runTests() {
     assert(normalized.edu[0].name === "碩博士", "First edu item should match");
     assert(normalized.edu[0].count !== null, "Edu count should be calculated from inferred total");
     assert(normalized.skills[0].name === "TypeScript", "Skill should be normalized");
+
+    // Test that empty percents with rangeCode 1 returns total: null and totalBasis: 'unknown'
+    const emptyNormalized = normalizeApplyAnalysis(
+        { edu: { total: 0 }, yearRange: {}, exp: {} },
+        { jobId: "newjob", jobNo: 999999, rangeCode: 1 }
+    );
+    assert(emptyNormalized.total === null, "Empty stats for rangeCode 1 should not assume total = 0");
+    assert(emptyNormalized.totalBasis === 'unknown', "Empty stats for rangeCode 1 should have totalBasis 'unknown'");
 
     console.log("✅ All Applicant Analysis Tests Passed!");
 }
