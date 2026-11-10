@@ -1,4 +1,4 @@
-import { searchJobs } from '../src/tools/search';
+import { searchJobs, SearchArgsSchema } from '../src/tools/search';
 import { getJobDetails } from '../src/tools/details';
 import { prepareApplication } from '../src/tools/apply';
 import { closeBrowser } from '../src/browser';
@@ -6,7 +6,7 @@ import { closeBrowser } from '../src/browser';
 async function main() {
     try {
         console.log("=== 測試 1: 搜尋職缺 (AI 全端工程師) ===");
-        const searchResult = await searchJobs({ keyword: '前端工程師', page: 1, headless: false });
+        const searchResult = await searchJobs(SearchArgsSchema.parse({ keyword: '前端工程師', page: 1 }));
         
         if (searchResult && searchResult.error) {
             console.log("搜尋失敗:", searchResult.error);

@@ -34,10 +34,10 @@
 | :--- | :--- | :--- | :--- |
 | `job104_check_session` | 每次對話起手式 | 無 | 確認 Cookie 有效性與 `signin.104.com.tw` 跳轉狀態 |
 | `job104_search` | 劇本 A：搜尋職缺 | `keyword`（必填）, `location`, `page`, `salaryMin`, `excludeNegotiable`, `excludeFeatured`, `remote`, `jobType`, `sort` | `location` 自動轉代碼；`excludeFeatured: true` 排除付費廣告，`excludeNegotiable: true` 排除面議，`salaryMin` 嚴格下限；`jobType: 'fulltime' \| 'parttime'`；`sort: 'newest' \| 'salary' \| 'relevance'`；**嚴禁直接倒出未過濾結果** |
-| `job104_get_details` | 劇本 C：職缺深度診斷 | `job_url`（必填） | 獲取完整 JD、薪資待遇、加分條件與 HR 聯絡人 |
+| `job104_get_details` | 劇本 C：職缺深度診斷 | `job_url`（必填，網址或代碼） | 獲取完整 JD、薪資待遇、加分條件與 HR 聯絡人 |
 | `job104_get_apply_analysis` | 劇本 D：競爭情報診斷 | `jobUrlOrId`（必填） | **數學反推確切應徵總人數**，解析學歷、年資、語言、Top 10 技能與證照分布 |
-| `job104_get_cover_letters` | 劇本 C：起草推薦信前 | `job_url`（必填） | 需要任一有效職缺網址來開啟應徵視窗讀取範本（通常帶入目標職缺）；提取人類帳號在 104 儲存的範本，**繼承人類原本的真實語氣** |
-| `job104_prepare_application` | 劇本 C：人類確認後代填 | `job_url`（必填）, `cover_letter_text`, `template_title`, `dry_run` | 打開應徵視窗、選定推薦信範本、填入自薦信。**只有 `dry_run: true` 會截圖**；兩種模式都不會關閉視窗。**鐵律：絕不按送出** |
+| `job104_get_cover_letters` | 劇本 C：起草推薦信前 | `job_url`（必填，網址或代碼） | 需要任一有效職缺網址或代碼來開啟應徵視窗讀取範本（通常帶入目標職缺）；提取人類帳號在 104 儲存的範本，**繼承人類原本的真實語氣** |
+| `job104_prepare_application` | 劇本 C：人類確認後代填 | `job_url`（必填，網址或代碼）, `cover_letter_text`, `template_title`, `dry_run` | 打開應徵視窗、選定推薦信範本、填入自薦信。**只有 `dry_run: true` 會截圖**；兩種模式都不會關閉視窗。**鐵律：絕不按送出** |
 | `job104_search_companies` | 劇本 B：搜尋特定企業 | `keyword`（必填）, `page`, `pageSize` | 取得目標公司的網址與代碼 |
 | `job104_get_company_detail` | 劇本 B：公司深度分析 | `companyInput`（必填，代碼或網址）, `keyword` | 提取企業福利文化，支援以 `keyword` 比對該公司職缺 **JD 內文** 全文 |
 | `job104_save_job` | 人類指示收藏時 | `jobInput`（必填，代碼或網址） | 將職缺加入使用者的 104 收藏名單（直接寫入） |

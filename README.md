@@ -117,7 +117,7 @@ git clone https://github.com/YuJunWang/104-job-hunter-mcp.git
 cd 104-job-hunter-mcp
 npm install
 npm run check    # 💡 檢查本機環境與 Chrome 是否就緒
-npm test         # 🧪 執行 5 組單元測試套件
+npm test         # 🧪 執行 6 組單元測試套件
 npm run build
 ```
 
@@ -149,7 +149,7 @@ npx tsx src/login.ts
 
 ---
 
-## 🛠️ MCP 工具列表 (共 10 組)
+## 🛠️ MCP 工具列表 (共 11 組)
 
 | 工具名稱 | 用途說明 | 運作機制 |
 | :--- | :--- | :--- |
@@ -172,7 +172,7 @@ npx tsx src/login.ts
 ```
 104-job-hunter-mcp/
 ├── src/
-│   ├── index.ts          # MCP 入口，註冊 10 組工具與 runExclusive 佇列防護
+│   ├── index.ts          # MCP 入口，註冊 11 組工具與 executeToolSafely 錯誤防護
 │   ├── browser.ts        # Playwright 瀏覽器單例管理與 fetchIn104 頁內請求封裝
 │   ├── login.ts          # 互動登入與 Cookie 本地持久化腳本
 │   ├── utils/
@@ -180,7 +180,7 @@ npx tsx src/login.ts
 │   │   ├── area.ts       # 104 官方台灣縣市 Area Code 雙向對照工具
 │   │   └── applyAnalysis.ts # 應徵者人數精算反推與多維度正規化
 │   ├── tools/            # 10 組核心工具實作
-│   └── __tests__/        # 5 組單元測試套件與 runAllTests.ts 測試運行器
+│   └── __tests__/        # 6 組單元測試套件與 runAllTests.ts 測試運行器
 ├── AGENTS.md             # AI 操作手冊（含去 AI 寫作原則、競爭情報分析與 4 步投遞 SOP）
 ├── MY_PROFILE.example.md # 求職分身設定檔範本
 └── package.json          # v1.2.0

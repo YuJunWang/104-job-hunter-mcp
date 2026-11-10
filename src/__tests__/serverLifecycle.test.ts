@@ -1,4 +1,6 @@
 import { executeToolSafely, registerGracefulShutdown } from '../index';
+import * as fs from 'fs';
+import * as path from 'path';
 
 function assert(condition: boolean, message: string) {
     if (!condition) throw new Error(`❌ Assertion Failed: ${message}`);
@@ -72,6 +74,15 @@ async function runTests() {
 
     assert(cleanupCount === 1, `cleanupFn called exactly once, actual: ${cleanupCount}`);
     assert(exitCode === 0, `proc.exit(0) was called, actual: ${exitCode}`);
+
+    // Test 5: package.json and tsconfig.json build configuration
+    const pkgPath = path.resolve(__dirname, '../../package.json');
+    const tsconfigPath = path.resolve(__dirname, '../../tsconfig.json');
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+    const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, 'utf-8'));
+
+    assert(pkg.main === "build/index.js", `package.json "main" should be "build/index.js", actual: ${pkg.main}`);
+    assert(Array.isArray(tsconfig.exclude) && tsconfig.exclude.includes("src/__tests__"), `tsconfig.json "exclude" should include "src/__tests__", actual: ${JSON.stringify(tsconfig.exclude)}`);
 
     console.log("✅ All Server Lifecycle & Error Boundary Tests Passed!");
 }
