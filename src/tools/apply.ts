@@ -1,7 +1,7 @@
 import { getBrowserPage } from '../browser';
 import { z } from 'zod';
 import * as path from 'path';
-import { normalizeJobUrl } from '../utils/url';
+import { normalizeJobUrl, isJobContentApiUrl } from '../utils/url';
 
 export const ApplyArgsSchema = z.object({
     job_url: z.string().min(1).describe("104 職缺頁面網址或職缺代碼"),
@@ -24,29 +24,31 @@ export async function prepareApplication(args: ApplyArgs) {
     const page = await getBrowserPage(false);
     let apiIsApplied: boolean | null = null;
 
-    // 第一重防護（API層）：監聽 104 後端 /api/jobs/{jobId} API，取得系統層最真實的 isApplied 旗標
-    const apiHandler = async (response: any) => {
-        if (jobId && response.url().match(new RegExp(`/api/jobs/${jobId}$`))) {
-            page.off('response', apiHandler);
-            try {
-                const json = await response.json();
-                if (typeof json?.data?.header?.isApplied === 'boolean') {
-                    apiIsApplied = json.data.header.isApplied;
-                    console.error(`[Apply] Intercepted 104 Job Detail API: isApplied = ${apiIsApplied}`);
-                }
-            } catch {}
-        }
-    };
-    page.on('response', apiHandler);
-
-    console.error(`[Apply] Navigating to ${jobUrl} (dry_run=${dry_run})`);
-    await page.goto(jobUrl, { waitUntil: 'domcontentloaded' });
-    
-    // 短暫等待讓非同步 API 回應或 DOM 初次渲染完成
-    await page.waitForTimeout(1000);
-    page.off('response', apiHandler);
-    
     try {
+        // 第一重防護（API層）：監聽 104 後端 /api/jobs/{jobId} 或 /job/ajax/content/{jobId} API，取得系統層最真實的 isApplied 旗標
+        const apiHandler = async (response: any) => {
+            if (jobId && isJobContentApiUrl(response.url(), jobId)) {
+                page.off('response', apiHandler);
+                try {
+                    const json = await response.json();
+                    if (typeof json?.data?.header?.isApplied === 'boolean') {
+                        apiIsApplied = json.data.header.isApplied;
+                        console.error(`[Apply] Intercepted 104 Job Detail API: isApplied = ${apiIsApplied}`);
+                    }
+                } catch {}
+            }
+        };
+        page.on('response', apiHandler);
+
+        console.error(`[Apply] Navigating to ${jobUrl} (dry_run=${dry_run})`);
+        try {
+            await page.goto(jobUrl, { waitUntil: 'domcontentloaded' });
+            // 短暫等待讓非同步 API 回應或 DOM 初次渲染完成
+            await page.waitForTimeout(1000);
+        } finally {
+            page.off('response', apiHandler);
+        }
+
         // 第一重防護檢查：後端 API 回傳已應徵
         if (apiIsApplied === true) {
             console.error(`[Apply] Confirmed already applied via 104 API response.`);

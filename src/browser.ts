@@ -167,3 +167,65 @@ export async function fetchIn104(
         return { status: res.status, ok: res.ok, text, json };
     }, { url, method: init.method || 'GET', body: init.body, referrer: init.referrer });
 }
+
+/**
+ * 安全導航並攔截特定 API JSON 回應的通用輔助函式。
+ * 解決 Playwright/Puppeteer 下若 page.goto() 失敗或逾時會遺留未處理之 Promise (UnhandledPromiseRejection)
+ * 與 EventEmitter listener leak 的問題。
+ */
+export async function waitForJsonResponseDuringGoto(
+    targetPage: {
+        on: (event: 'response', fn: (res: any) => void) => any;
+        off: (event: 'response', fn: (res: any) => void) => any;
+        goto: (url: string, options?: any) => Promise<any>;
+    },
+    targetUrl: string,
+    matchUrl: (responseUrl: string) => boolean,
+    timeoutMs: number = 15000,
+    timeoutMessage: string = 'API 回應逾時'
+): Promise<any> {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let handler: ((response: any) => void) | null = null;
+
+    const cleanup = () => {
+        if (timeoutId) {
+            clearTimeout(timeoutId);
+            timeoutId = null;
+        }
+        if (handler) {
+            targetPage.off('response', handler);
+            handler = null;
+        }
+    };
+
+    const apiDataPromise = new Promise<any>((resolve, reject) => {
+        timeoutId = setTimeout(() => {
+            cleanup();
+            reject(new Error(timeoutMessage));
+        }, timeoutMs);
+
+        handler = async (response: any) => {
+            if (matchUrl(response.url())) {
+                cleanup();
+                try {
+                    const json = await response.json();
+                    resolve(json);
+                } catch (e) {
+                    reject(e);
+                }
+            }
+        };
+
+        targetPage.on('response', handler);
+    });
+
+    // Prevent UnhandledPromiseRejection if goto fails before apiDataPromise is awaited
+    apiDataPromise.catch(() => {});
+
+    try {
+        await targetPage.goto(targetUrl, { waitUntil: 'domcontentloaded' });
+        return await apiDataPromise;
+    } finally {
+        cleanup();
+    }
+}

@@ -1,4 +1,4 @@
-import { getBrowserPage } from '../browser';
+import { getBrowserPage, waitForJsonResponseDuringGoto } from '../browser';
 import { z } from 'zod';
 import { resolveAreaCodes, SUPPORTED_AREAS } from '../utils/area';
 import { parseApplyRange } from '../utils/applyAnalysis';
@@ -92,33 +92,15 @@ export async function searchJobs(args: SearchArgs) {
 
     console.error(`[Search] Navigating to ${searchUrl}`);
     
-    const apiDataPromise = new Promise<any>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-            browserPage.off('response', handler);
-            reject(new Error('API 回應逾時（20秒）'));
-        }, 20000);
-
-        const handler = async (response: any) => {
-            if (response.url().includes('/jobs/search/api/jobs') || response.url().includes('/jobs/search/list')) {
-                browserPage.off('response', handler);
-                clearTimeout(timeout);
-                try {
-                    const json = await response.json();
-                    resolve(json);
-                } catch (e) {
-                    reject(e);
-                }
-            }
-        };
-
-        browserPage.on('response', handler);
-    });
-
-    await browserPage.goto(searchUrl, { waitUntil: 'domcontentloaded' });
-    
     let apiData: any;
     try {
-        apiData = await apiDataPromise;
+        apiData = await waitForJsonResponseDuringGoto(
+            browserPage,
+            searchUrl,
+            (respUrl) => respUrl.includes('/jobs/search/api/jobs') || respUrl.includes('/jobs/search/list'),
+            20000,
+            'API 回應逾時（20秒）'
+        );
     } catch (e) {
         return { error: `無法取得職缺資料：${(e as Error).message}` };
     }

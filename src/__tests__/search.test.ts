@@ -1,4 +1,5 @@
 import { buildSearchUrl, filterJobResults, SearchArgsSchema } from '../tools/search';
+import { waitForJsonResponseDuringGoto } from '../browser';
 
 function assert(condition: boolean, message: string) {
     if (!condition) throw new Error(`❌ Assertion Failed: ${message}`);
@@ -41,6 +42,68 @@ async function runTests() {
     const filtered = filterJobResults(rawList, { excludeFeatured: true });
     assert(filtered.length === 2, "Featured job (jobType 1) should be excluded");
     assert(!filtered.some(j => j.jobName === "廣告職缺"), "Ad job removed");
+
+    // 4. Browser Navigation & API Interception Tests (waitForJsonResponseDuringGoto)
+    class MockPage {
+        listeners: Array<(res: any) => void> = [];
+        gotoShouldThrow: Error | null = null;
+        gotoBehavior?: () => Promise<void>;
+
+        on(event: string, fn: (res: any) => void) {
+            if (event === 'response') this.listeners.push(fn);
+        }
+        off(event: string, fn: (res: any) => void) {
+            if (event === 'response') {
+                this.listeners = this.listeners.filter(l => l !== fn);
+            }
+        }
+        async goto(url: string, opts?: any) {
+            if (this.gotoShouldThrow) throw this.gotoShouldThrow;
+            if (this.gotoBehavior) await this.gotoBehavior();
+        }
+        emitResponse(res: any) {
+            for (const l of [...this.listeners]) {
+                l(res);
+            }
+        }
+    }
+
+    // Case A: goto throws net::ERR_CONNECTION_RESET
+    const mockPageA = new MockPage();
+    mockPageA.gotoShouldThrow = new Error("net::ERR_CONNECTION_RESET");
+    let caughtErrorA: Error | null = null;
+    try {
+        await waitForJsonResponseDuringGoto(
+            mockPageA,
+            "https://www.104.com.tw/jobs/search/",
+            (url) => url.includes('/jobs/search/api/jobs'),
+            5000,
+            "API timeout"
+        );
+    } catch (e) {
+        caughtErrorA = e as Error;
+    }
+    assert(caughtErrorA !== null, "Case A: should reject when goto throws");
+    assert(caughtErrorA?.message === "net::ERR_CONNECTION_RESET", "Case A: error message should match goto error");
+    assert(mockPageA.listeners.length === 0, "Case A: response listener must be removed on error");
+
+    // Case B: goto succeeds and matching response arrives
+    const mockPageB = new MockPage();
+    mockPageB.gotoBehavior = async () => {
+        mockPageB.emitResponse({
+            url: () => "https://www.104.com.tw/jobs/search/api/jobs?keyword=AI",
+            json: async () => ({ status: 200, data: [{ jobName: "AI Engineer" }] })
+        });
+    };
+    const resultB = await waitForJsonResponseDuringGoto(
+        mockPageB,
+        "https://www.104.com.tw/jobs/search/",
+        (url) => url.includes('/jobs/search/api/jobs'),
+        5000,
+        "API timeout"
+    );
+    assert(resultB?.status === 200 && resultB?.data?.[0]?.jobName === "AI Engineer", "Case B: should resolve with parsed JSON");
+    assert(mockPageB.listeners.length === 0, "Case B: response listener must be removed after successful response");
 
     console.log("✅ All Search Filter Tests Passed!");
 }

@@ -1,6 +1,6 @@
-import { getBrowserPage } from '../browser';
+import { getBrowserPage, waitForJsonResponseDuringGoto } from '../browser';
 import { z } from 'zod';
-import { normalizeJobUrl } from '../utils/url';
+import { normalizeJobUrl, isJobContentApiUrl } from '../utils/url';
 
 export const DetailsArgsSchema = z.object({
     job_url: z.string().min(1).describe("104 職缺頁面網址或職缺代碼，格式如 https://www.104.com.tw/job/xxxxx 或 xxxxx")
@@ -20,37 +20,17 @@ export async function getJobDetails(args: DetailsArgs) {
 
     console.error(`[Details] Navigating to ${jobUrl} (jobId: ${jobId})`);
 
-    // 用 Promise 攔截 104 後端的 Job Detail API
-    // ⚠️ 使用命名函式 + off() 確保呼叫後清除監聽器，避免 EventEmitter 洩漏
-    const apiDataPromise = new Promise<any>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-            browserPage.off('response', handler);
-            reject(new Error('詳情 API 回應逾時（15秒）'));
-        }, 15000);
-
-        const handler = async (response: any) => {
-            const respUrl = response.url();
-            if (respUrl.includes(`/job/ajax/content/${jobId}`) || respUrl.includes(`/api/jobs/${jobId}`)) {
-                browserPage.off('response', handler);
-                clearTimeout(timeout);
-                try {
-                    const json = await response.json();
-                    resolve(json);
-                } catch (e) {
-                    reject(e);
-                }
-            }
-        };
-
-        browserPage.on('response', handler);
-    });
-
     await browserPage.keyboard.press('Escape').catch(() => {});
-    await browserPage.goto(jobUrl, { waitUntil: 'domcontentloaded' });
 
     let apiData: any;
     try {
-        apiData = await apiDataPromise;
+        apiData = await waitForJsonResponseDuringGoto(
+            browserPage,
+            jobUrl,
+            (respUrl) => isJobContentApiUrl(respUrl, jobId),
+            15000,
+            '詳情 API 回應逾時（15秒）'
+        );
     } catch (e) {
         console.error(`[Details] API interception timed out (${(e as Error).message}), attempting DOM parsing fallback...`);
         try {

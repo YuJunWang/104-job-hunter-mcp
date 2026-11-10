@@ -79,3 +79,17 @@ export function extractCompanyId(input: string): string | null {
 
     return null;
 }
+
+/**
+ * 判斷回應網址是否為指定職缺代碼的 Job Content / Detail API。
+ * 支援:
+ * - /job/ajax/content/{jobId} (網頁端 AJAX API，常見於直接瀏覽)
+ * - /api/jobs/{jobId} (行動端或現代 REST API)
+ * 同時支援 query params (如 ?r=123) 與雜湊，並防止前綴部分比對 (如 6lots 比對 6lots_extra)。
+ */
+export function isJobContentApiUrl(responseUrl: string, jobId: string): boolean {
+    if (!responseUrl || !jobId) return false;
+    const escaped = jobId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(`(?:/job/ajax/content/|/api/jobs/)${escaped}(?:[/?#]|$)`, 'i');
+    return pattern.test(responseUrl);
+}

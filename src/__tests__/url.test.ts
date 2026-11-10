@@ -1,4 +1,4 @@
-import { extractJobId, extractCompanyId, isLoginUrl, normalizeJobUrl } from '../utils/url';
+import { extractJobId, extractCompanyId, isLoginUrl, normalizeJobUrl, isJobContentApiUrl } from '../utils/url';
 import { resolveAreaCodes } from '../utils/area';
 import { DetailsArgsSchema } from '../tools/details';
 import { ApplyArgsSchema } from '../tools/apply';
@@ -102,6 +102,24 @@ async function runTests() {
         assert(
             !isLoginUrl("https://evil.com/?r=signin.104.com.tw"),
             "Only the hostname decides; a query string mentioning signin must not match"
+        );
+
+        // --- Job Content API URL Tests ---
+        assert(
+            isJobContentApiUrl("https://www.104.com.tw/api/jobs/6lots", "6lots") === true,
+            "Should match /api/jobs/{jobId}"
+        );
+        assert(
+            isJobContentApiUrl("https://www.104.com.tw/job/ajax/content/6lots?r=171234", "6lots") === true,
+            "Should match /job/ajax/content/{jobId} with query params"
+        );
+        assert(
+            isJobContentApiUrl("https://www.104.com.tw/api/jobs/6lots_extra", "6lots") === false,
+            "Should not partial-match longer jobIds"
+        );
+        assert(
+            isJobContentApiUrl("https://www.104.com.tw/api/jobs/other", "6lots") === false,
+            "Should not match different jobId"
         );
 
         // --- Area Code Tests ---
