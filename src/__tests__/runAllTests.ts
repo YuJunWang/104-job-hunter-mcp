@@ -6,7 +6,8 @@ const testFiles = [
     'src/__tests__/applyAnalysis.test.ts',
     'src/__tests__/applyAnalysisTool.test.ts',
     'src/__tests__/search.test.ts',
-    'src/__tests__/company.test.ts'
+    'src/__tests__/company.test.ts',
+    'src/__tests__/serverLifecycle.test.ts'
 ];
 
 console.log(`🚀 Executing ${testFiles.length} Test Suites...`);
