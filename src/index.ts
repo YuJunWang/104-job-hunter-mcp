@@ -79,7 +79,7 @@ export function registerGracefulShutdown(
 // 建立 MCP 伺服器實例
 const server = new McpServer({
     name: "104-job-hunter",
-    version: "1.2.0",
+    version: "1.2.1",
 });
 
 // 註冊搜尋工具

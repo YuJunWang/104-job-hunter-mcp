@@ -3,12 +3,13 @@
 > 透過 MCP (Model Context Protocol) 讓 AI 直接接管 104 人力銀行的繁瑣操作。  
 > 專注於精準過濾、深度調研、競爭者情報反推與客製自薦信代填，拒絕無意義的亂槍打鳥。
 
-[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](https://github.com/YuJunWang/104-job-hunter-mcp)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)](https://www.typescriptlang.org/)
+[![Version](https://img.shields.io/badge/version-1.2.1-blue.svg)](https://github.com/YuJunWang/104-job-hunter-mcp)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18.0.0-339933?logo=node.js)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-7.x-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![Playwright](https://img.shields.io/badge/Playwright-1.62-45BA4B?logo=playwright)](https://playwright.dev/)
 [![MCP SDK](https://img.shields.io/badge/MCP_SDK-1.30-FF6B35)](https://modelcontextprotocol.io/)
 [![License: ISC](https://img.shields.io/badge/License-ISC-green.svg)](https://opensource.org/licenses/ISC)
-[![Local-First](https://img.shields.io/badge/Security-Local--First-brightgreen)](#-隱私與安全首要原則)
+[![Local-First](https://img.shields.io/badge/Security-Local--First-brightgreen)](#-核心功能與工程細節)
 
 ---
 
@@ -69,19 +70,20 @@ AI 抓回搜尋結果後，不會一股腦把十幾頁列表倒給你。它會�
 
 ### 4. Hit-in-the-loop：安全邊界不退讓
 **這套工具絕不替你按最後的「確認送出」。**  
-`job104_prepare_application` 會打開投遞彈窗、選好履歷、填入推薦信，然後停下來。投哪家、怎麼投，是你的個人職涯，最後的送出鍵必須由你親眼看過、親手按下。
+`job104_prepare_application` 會打開投遞彈窗、選定推薦信範本、填入客製化推薦信，然後停下來。投哪家、怎麼投，是你的個人職涯，最後的送出鍵必須由你親眼看過、親手按下。
 
 ---
 
 ## ✨ 核心功能與工程細節
 
 - 🔍 **進階 API 攔截搜尋**：監聽 104 後端 JSON API，支援**薪資下限 (`salaryMin` 搭配 `scstrict=1`)**、**排除面議**、**排除廣告職缺 (`excludeFeatured`)**、**最新排序 (`sort: 'newest'`)** 與**遠端工作篩選**，並內建台灣縣市 Area Code 自動解析。
-- 📊 **競爭情報精算**：獨創 `job104_get_apply_analysis`，反推職缺不重複應徵人數，並掌握學歷（碩博/大學）、年資階層、對手 Top 10 技能與證照。
+- 📊 **競爭情報精算**：獨創 `job104_get_apply_analysis`，透過**百分比反推與互斥維度總和約束 ($\sum k_i = N$)** 精準算出不重複應徵人數，並掌握學歷（碩博/大學）、年資階層、對手 Top 10 技能與證照。
 - 🏢 **企業深層調研與 JD 內文搜尋**：除提取企業福利與公司簡介外，支援以 `keyword` 直接在該公司所有職缺的 **JD 內文**中全文比對，挖掘職稱沒寫但內文要求的寶藏職缺。
+- 🔗 **代碼/網址雙格式無縫串接**：所有職缺與公司工具皆內建智慧正規化（`normalizeJobUrl`），無論傳入完整 104 網址或純代碼（如 `6lots`）皆可直接調用。
 - 🔒 **本地優先 (Local-First)**：
   - 100% 在你本機運作，不對外傳輸帳號密碼或個人資料。
   - 登入使用獨立的本機 Chrome Profile，完全由你在官方頁面操作，免除重複登入困擾。
-- 🚦 **併發互斥防護 (Concurrency Protection)**：工具呼叫內建排隊互斥鎖，防止 Agent 平行發送多個請求時分頁互相搶導航而當機。
+- 🚦 **併發互斥與生命週期防護**：內建 `runExclusive` 佇列互斥鎖、導航監聽器防洩漏保護（`waitForJsonResponseDuringGoto`）、統一錯誤邊界（`executeToolSafely`），並在 MCP 斷線時自動釋放 Chrome Profile 鎖定，杜絕殭屍進程。
 
 ---
 
@@ -155,15 +157,15 @@ npx tsx src/login.ts
 | :--- | :--- | :--- |
 | `job104_check_session` | 檢查登入是否有效 | 支援新版 `signin.104.com.tw` 跳轉判斷，避免中途卡住 |
 | `job104_search` | 搜尋職缺 | 支援關鍵字、地點代碼轉換、**薪資下限**、**排除面議**、**排除廣告職缺**、**遠端型態**與**最新排序** |
-| `job104_get_details` | 讀取職缺完整內容 | 取得詳細 JD、薪資條件、加分技能與 HR 聯絡人資訊 |
-| `job104_get_apply_analysis` | **應徵者競爭情報分析** | **數學反推確切應徵總人數**，並回傳學歷、年資、年齡、語言、Top 10 技能與證照分布 |
-| `job104_get_cover_letters` | 取得現有自薦信範本 | 讀取帳號內的預設與自訂推薦信標題與全文，保留個人原始口吻 |
-| `job104_prepare_application` | 代填應徵表單 (HITL) | 開啟彈窗並填入微調後的推薦信，支援 Dry Run 截圖，**不替你送出** |
+| `job104_get_details` | 讀取職缺完整內容 | 支援傳入職缺網址或代碼，取得詳細 JD、薪資條件、加分技能與 HR 聯絡人資訊 |
+| `job104_get_apply_analysis` | **應徵者競爭情報分析** | **數學反推確切應徵總人數（含維度加總約束）**，並回傳學歷、年資、年齡、語言、Top 10 技能與證照分布 |
+| `job104_get_cover_letters` | 取得現有自薦信範本 | 支援傳入職缺網址或代碼，讀取帳號內的預設與自訂推薦信標題與全文，保留個人原始口吻 |
+| `job104_prepare_application` | 代填應徵表單 (HITL) | 支援傳入職缺網址或代碼，開啟彈窗、選定範本並填入微調後的推薦信，支援 Dry Run 截圖，**不替你送出** |
 | `job104_search_companies` | 搜尋企業資訊 | 查詢公司代碼、規模、產業類別與現有職缺數 |
-| `job104_get_company_detail` | 公司深度分析 | 提取企業福利文化與開放職缺，支援以 `keyword` 比對該公司職缺 JD 全文 |
-| `job104_save_job` | 收藏職缺 | 解析職缺所屬公司並加入我的收藏名單 |
-| `job104_save_company` | 追蹤公司 | 帶入完整規格 Payload 追蹤心儀企業 |
-| `job104_reload_server` | 優雅重載 MCP | 伺服器更新代碼後安全發送重啟信號，不中斷 stdio 通道 |
+| `job104_get_company_detail` | 公司深度分析 | 支援傳入公司網址或代碼，提取企業福利文化與開放職缺，並可以 `keyword` 比對該公司職缺 JD 全文 |
+| `job104_save_job` | 收藏職缺 | 支援傳入職缺網址或代碼，解析所屬公司並加入我的收藏名單 |
+| `job104_save_company` | 追蹤公司 | 支援傳入公司網址或代碼，帶入完整規格 Payload 追蹤心儀企業 |
+| `job104_reload_server` | 優雅重載 MCP | 伺服器更新代碼後安全關閉瀏覽器並發送重啟信號，不中斷 stdio 通道 |
 
 ---
 
@@ -172,18 +174,19 @@ npx tsx src/login.ts
 ```
 104-job-hunter-mcp/
 ├── src/
-│   ├── index.ts          # MCP 入口，註冊 11 組工具與 executeToolSafely 錯誤防護
-│   ├── browser.ts        # Playwright 瀏覽器單例管理與 fetchIn104 頁內請求封裝
+│   ├── index.ts          # MCP 入口，註冊 11 組工具、統一錯誤邊界與優雅退場機制
+│   ├── browser.ts        # Playwright 瀏覽器單例、fetchIn104 與防洩漏導航攔截封裝
 │   ├── login.ts          # 互動登入與 Cookie 本地持久化腳本
+│   ├── check-env.ts      # 環境健康檢查工具 (npm run check)
 │   ├── utils/
-│   │   ├── url.ts        # 職缺/公司 URL 提取與新版 signin 登入網址判斷
+│   │   ├── url.ts        # 職缺/公司 URL 正規化、API 路徑比對與登入網址判斷
 │   │   ├── area.ts       # 104 官方台灣縣市 Area Code 雙向對照工具
-│   │   └── applyAnalysis.ts # 應徵者人數精算反推與多維度正規化
-│   ├── tools/            # 10 組核心工具實作
+│   │   └── applyAnalysis.ts # 應徵者人數精算反推（含維度總和約束）與多維度正規化
+│   ├── tools/            # 8 個工具模組（共提供 10 組核心業務工具）
 │   └── __tests__/        # 6 組單元測試套件與 runAllTests.ts 測試運行器
 ├── AGENTS.md             # AI 操作手冊（含去 AI 寫作原則、競爭情報分析與 4 步投遞 SOP）
 ├── MY_PROFILE.example.md # 求職分身設定檔範本
-└── package.json          # v1.2.0
+└── package.json          # v1.2.1
 ```
 
 ---
